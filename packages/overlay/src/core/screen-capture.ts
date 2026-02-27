@@ -25,6 +25,7 @@ async function tryCapture(
   target: HTMLElement,
   rect: { x: number; y: number; width: number; height: number },
   useCORS: boolean,
+  foreignObjectRendering: boolean,
 ): Promise<string> {
   const canvas = await html2canvas(target, {
     x: rect.x + window.scrollX,
@@ -33,12 +34,18 @@ async function tryCapture(
     height: rect.height,
     scale: 1,
     useCORS,
+    foreignObjectRendering,
     logging: false,
     backgroundColor: null,
     imageTimeout: 1500,
     ignoreElements: shouldIgnoreCaptureElement,
   });
   return canvas.toDataURL('image/png');
+}
+
+function isUnsupportedColorFunctionError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return /unsupported color function|oklab|oklch/i.test(message);
 }
 
 export async function captureRegion(rect: {
@@ -52,18 +59,47 @@ export async function captureRegion(rect: {
   };
   const targets = [document.documentElement as HTMLElement, document.body as HTMLElement]
     .filter((t): t is HTMLElement => !!t);
-  const attempts: Array<{ target: HTMLElement; useCORS: boolean }> = [
-    { target: targets[0], useCORS: true },
-    { target: targets[0], useCORS: false },
-    { target: targets[1], useCORS: false },
+  const attempts: Array<{ target: HTMLElement; useCORS: boolean; foreignObjectRendering: boolean }> = [
+    { target: targets[0], useCORS: true, foreignObjectRendering: false },
+    { target: targets[0], useCORS: false, foreignObjectRendering: false },
+    { target: targets[1], useCORS: false, foreignObjectRendering: false },
   ].filter((a) => !!a.target);
 
   let lastError: unknown = null;
+  let sawUnsupportedColorFunction = false;
   for (const attempt of attempts) {
     try {
-      return await tryCapture(attempt.target, normalized, attempt.useCORS);
+      return await tryCapture(
+        attempt.target,
+        normalized,
+        attempt.useCORS,
+        attempt.foreignObjectRendering,
+      );
     } catch (err) {
       lastError = err;
+      if (isUnsupportedColorFunctionError(err)) {
+        sawUnsupportedColorFunction = true;
+      }
+    }
+  }
+
+  if (sawUnsupportedColorFunction) {
+    const fallbackAttempts: Array<{ target: HTMLElement; useCORS: boolean; foreignObjectRendering: boolean }> = [
+      { target: targets[0], useCORS: false, foreignObjectRendering: true },
+      { target: targets[1], useCORS: false, foreignObjectRendering: true },
+    ].filter((a) => !!a.target);
+
+    for (const attempt of fallbackAttempts) {
+      try {
+        return await tryCapture(
+          attempt.target,
+          normalized,
+          attempt.useCORS,
+          attempt.foreignObjectRendering,
+        );
+      } catch (err) {
+        lastError = err;
+      }
     }
   }
 

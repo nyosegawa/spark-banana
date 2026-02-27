@@ -78,4 +78,23 @@ describe('captureRegion', () => {
     expect(calls[0][1].useCORS).toBe(true);
     expect(calls[1][1].useCORS).toBe(false);
   });
+
+  it('retries with foreignObjectRendering when css color parsing fails', async () => {
+    const toDataURL = vi.fn().mockReturnValue('data:image/png;base64,FALLBACK');
+    (html2canvas as unknown as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error('unsupported color function "oklab"'))
+      .mockRejectedValueOnce(new Error('unsupported color function "oklab"'))
+      .mockRejectedValueOnce(new Error('unsupported color function "oklab"'))
+      .mockResolvedValueOnce({ toDataURL });
+
+    const result = await captureRegion({ x: 5, y: 6, width: 40, height: 20 });
+
+    expect(result).toBe('data:image/png;base64,FALLBACK');
+    const calls = (html2canvas as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls).toHaveLength(4);
+    expect(calls[0][1].foreignObjectRendering).toBe(false);
+    expect(calls[1][1].foreignObjectRendering).toBe(false);
+    expect(calls[2][1].foreignObjectRendering).toBe(false);
+    expect(calls[3][1].foreignObjectRendering).toBe(true);
+  });
 });
