@@ -7,112 +7,113 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f5f5f5;
-  color: #1a1a1a;
-  line-height: 1.6;
+  font-family: 'MS Gothic', 'DotGothic16', 'Press Start 2P', 'Noto Sans JP', monospace;
+  background: #d3d8dc;
+  color: #0f172a;
+  line-height: 1.35;
+  -webkit-font-smoothing: none;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
 }
 
 body > div {
   min-height: 100vh;
-  background: linear-gradient(135deg, #eff6ff, #fae8ff, #e0e7ff);
+  background-color: #d3d8dc;
+  background-image:
+    linear-gradient(rgba(141, 151, 160, 0.25) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(141, 151, 160, 0.25) 1px, transparent 1px);
+  background-size: 28px 28px;
+  border: 4px solid #020617;
+  box-shadow: inset 0 0 0 4px #3b82f6, inset 0 0 0 8px #020617;
 }
 
 .app {
-  max-width: 560px;
+  max-width: 640px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 28px 24px 36px;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 22px;
 }
 
 .header h1 {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
+  letter-spacing: 1px;
+  color: #020617;
 }
 
 .subtitle {
-  color: #888;
-  font-size: 14px;
-  margin-top: 4px;
+  color: #111827;
+  font-size: 18px;
+  margin-top: 6px;
+  font-weight: 700;
 }
 
 .input-area {
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .todo-input {
   flex: 1;
-  padding: 10px 14px;
-  font-size: 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 4px solid #020617;
+  border-radius: 0;
   outline: none;
-  transition: border-color 0.15s;
+  background: #f8fafc;
 }
 
 .todo-input:focus {
-  border-color: #6366f1;
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 div.input-area > button.add-btn {
-  padding: 10px 20px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
+  padding: 0 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #dbeafe;
   background: #2563eb;
-  border: none;
-  border-radius: 8px;
+  border: 4px solid #020617;
+  border-radius: 0;
   cursor: pointer;
-  transition: background 0.15s;
-}
-
-div.input-area > button.add-btn:hover {
-  background: #1d4ed8;
+  box-shadow: 3px 3px 0 #020617;
 }
 
 main.main > ul.todo-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 8px 0 0;
-  padding: 8px 6px;
-  background: linear-gradient(135deg, #fafafa, #ffffff);
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 12px 20px rgba(2, 6, 23, 0.06);
+  gap: 16px;
+  margin: 0;
+  padding: 14px 10px;
+  background: #93c5fd;
+  border: 4px solid #020617;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 4px #3b82f6, 4px 4px 0 #020617;
 }
 
 li.todo-item > button.delete-btn {
-  background: none;
-  color: #fff;
+  color: #dbeafe;
 }
 
 li.todo-item > label.todo-label {
-  font-weight: normal;
-  color: #0f172a;
+  color: #e2e8f0;
 }
 
 ul.todo-list > li.todo-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition: opacity 0.2s;
-}
-
-ul.todo-list > li.todo-item {
+  padding: 14px 16px;
   background: #3b82f6;
-  color: #0f172a;
+  border: 4px solid #020617;
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 #020617;
 }
 
 .todo-item.done {
@@ -122,104 +123,93 @@ ul.todo-list > li.todo-item {
 .todo-label {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
   flex: 1;
 }
 
 label.todo-label > input {
   appearance: none;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #f9a8d4;
-  border-radius: 7px;
-  background-color: #fff;
-  box-shadow: inset 0 0 0 2px #fff;
+  width: 28px;
+  height: 28px;
+  border: 4px solid #020617;
+  border-radius: 0;
+  background-color: #ffd3e6;
+  box-shadow: inset 0 0 0 4px #f8fafc;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s ease;
-}
-
-label.todo-label > input:hover {
-  border-color: #ec4899;
-  transform: translateY(-1px);
 }
 
 label.todo-label > input:checked {
-  background: linear-gradient(135deg, #fbcfe8, #f9a8d4);
-  border-color: #ec4899;
+  background: #0ea5e9;
 }
 
 label.todo-label > input:checked::before {
   content: '✓';
-  color: #fff;
-  font-size: 13px;
+  color: #020617;
+  font-size: 18px;
   font-weight: 700;
   position: absolute;
-  top: 1px;
-  left: 4px;
+  top: -2px;
+  left: 3px;
 }
 
 .todo-text {
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .todo-item.done .todo-text {
   text-decoration: line-through;
-  color: #999;
+  color: #bfdbfe;
 }
 
 .delete-btn {
-  padding: 4px 12px;
-  font-size: 13px;
-  color: #ec4899;
-  background: none;
-  border: 1px solid #f9a8d4;
-  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  background: #2563eb;
+  border: 4px solid #020617;
+  border-radius: 14px;
   cursor: pointer;
-  transition: background 0.15s;
-}
-
-.delete-btn:hover {
-  background: #fdf2f8;
+  box-shadow: 2px 2px 0 #020617;
 }
 
 .footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #e5e5e5;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 4px solid rgba(15, 23, 42, 0.2);
 }
 
 .remaining {
-  font-size: 14px;
-  color: #666;
+  font-size: 18px;
+  color: #0f172a;
+  font-weight: 700;
 }
 
 .clear-btn {
-  padding: 6px 14px;
-  font-size: 13px;
-  color: #666;
-  background: none;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #dbeafe;
+  background: #2563eb;
+  border: 4px solid #020617;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #020617;
   cursor: pointer;
-  transition: background 0.15s;
-}
-
-.clear-btn:hover:not(:disabled) {
-  background: #f5f5f5;
 }
 
 .clear-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
+  box-shadow: none;
   cursor: default;
 }
 
 .empty-state {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: #334155;
 }

@@ -28,3 +28,6 @@ pnpm-debug.log*
 .DS_Store
 .vscode/
 .idea/
+
+# Example transpile artifacts
+examples/vite-react/src/*.js
