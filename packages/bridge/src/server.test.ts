@@ -496,6 +496,64 @@ describe('BridgeServer', () => {
       );
       ws.close();
     });
+
+    it('routes banana_apply approval to the same requestId and resumes after approval_response', async () => {
+      server = new BridgeServer({
+        port,
+        codex: { projectRoot: '/tmp' },
+        concurrency: 1,
+      });
+      await server.start();
+
+      const codex = mockCodexInstances[0];
+      codex.execute.mockImplementationOnce(async (
+        _annotation: Annotation,
+        _projectRoot: string,
+        _onProgress: (message: string) => void,
+        onApproval?: (command: string) => Promise<boolean>,
+      ) => {
+        const approved = await onApproval?.('npm run build');
+        return approved
+          ? { success: true, output: 'banana approved', durationMs: 10, threadId: 'banana-thread' }
+          : { success: false, output: '', error: 'denied', durationMs: 10, threadId: 'banana-thread' };
+      });
+
+      const ws = new WebSocket(`ws://localhost:${port}`);
+      await waitForMessage(ws); // connected
+
+      const requestId = 'banana-approval-1';
+      (server as any).bananaRequests.set(requestId, {
+        id: requestId,
+        timestamp: Date.now(),
+        screenshot: 'data:image/png;base64,AAA',
+        region: { x: 0, y: 0, width: 100, height: 80 },
+        instruction: 'match target image',
+        status: 'suggestions_ready',
+      });
+
+      ws.send(JSON.stringify({
+        type: 'banana_apply',
+        requestId,
+        suggestion: {
+          id: 'opt-a',
+          title: 'Option A',
+          description: 'Apply style A',
+          image: 'data:image/png;base64,AAA',
+        },
+      }));
+
+      const approvalReq = await waitForMessageType(ws, 'approval_request', (msg) => msg.annotationId === requestId);
+      expect(approvalReq.command).toBe('npm run build');
+
+      ws.send(JSON.stringify({ type: 'approval_response', annotationId: requestId, approved: true }));
+      const applied = await waitForMessageType(ws, 'banana_status', (msg) =>
+        msg.requestId === requestId && msg.status === 'applied'
+      );
+      expect(applied.status).toBe('applied');
+      expect(codex.execute.mock.calls[0][0].id).toBe(requestId);
+
+      ws.close();
+    });
   });
 
   describe('banana request handling', () => {

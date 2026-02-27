@@ -523,6 +523,7 @@ export class BridgeServer {
       const onProgress = (message: string) => {
         this.messages.sendToSender(requestId, { type: 'banana_progress', requestId, message });
       };
+      const onApproval = (command: string) => this.requestApproval(requestId, command);
 
       const imgDir = join(tmpdir(), 'spark-banana');
       mkdirSync(imgDir, { recursive: true });
@@ -541,7 +542,7 @@ export class BridgeServer {
       const promptOverride = buildBananaApplyPrompt(suggestion, request.instruction, request.region, originalPath, targetPath, request.regionElements);
 
       const syntheticAnnotation: Annotation = {
-        id: `banana-${requestId}`,
+        id: requestId,
         timestamp: Date.now(),
         element: {
           selector: 'body',
@@ -564,7 +565,7 @@ export class BridgeServer {
         syntheticAnnotation,
         projectRoot,
         onProgress,
-        undefined,
+        onApproval,
         { modelOverride: 'gpt-5.3-codex', promptOverride },
       );
 
