@@ -22,9 +22,10 @@ function genId(): string {
 
 function readImportMetaEnv(): Record<string, unknown> {
   try {
-    // Use runtime evaluation so CJS/SSR bundles do not break on import.meta.
-    const value = new Function('try { return import.meta.env; } catch { return undefined; }')();
-    return (value && typeof value === 'object') ? (value as Record<string, unknown>) : {};
+    // Bundlers (Vite/Next/CRA) replace import.meta.env values at build time.
+    const meta = import.meta as unknown as { env?: Record<string, unknown> };
+    const env = meta?.env;
+    return (env && typeof env === 'object') ? env : {};
   } catch {
     return {};
   }
