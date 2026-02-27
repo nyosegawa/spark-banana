@@ -16,14 +16,16 @@ let bridgeInstances: any[] = [];
 vi.mock('../core/bridge-client', () => {
   class MockBridgeClient {
     url: string;
+    projectRoot?: string;
     connectFn = vi.fn();
     disconnectFn = vi.fn();
     sendAnnotationFn = vi.fn();
     sendApprovalResponseFn = vi.fn();
     sendRestartCodexFn = vi.fn();
 
-    constructor(url: string) {
+    constructor(url: string, projectRoot?: string) {
       this.url = url;
+      this.projectRoot = projectRoot;
       bridgeInstances.push(this);
     }
 
@@ -81,6 +83,7 @@ describe('SparkAnnotation', () => {
 
   afterEach(() => {
     cleanup();
+    delete (process.env as Record<string, string | undefined>).SPARK_PROJECT_ROOT;
     vi.restoreAllMocks();
   });
 
@@ -135,6 +138,20 @@ describe('SparkAnnotation', () => {
     render(<SparkAnnotation bridgeUrl="ws://custom:4000" />);
     expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
     expect(bridgeInstances[0].url).toBe('ws://custom:4000');
+  });
+
+  it('uses env project root when projectRoot prop is omitted', () => {
+    (process.env as Record<string, string | undefined>).SPARK_PROJECT_ROOT = '/tmp/from-env';
+    render(<SparkAnnotation />);
+    expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
+    expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-env');
+  });
+
+  it('prefers explicit projectRoot prop over env', () => {
+    (process.env as Record<string, string | undefined>).SPARK_PROJECT_ROOT = '/tmp/from-env';
+    render(<SparkAnnotation projectRoot="/tmp/from-prop" />);
+    expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
+    expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-prop');
   });
 
   it('creates BridgeClient with default bridgeUrl', () => {

@@ -24,19 +24,20 @@ describe('captureRegion', () => {
 
     expect(result).toBe('data:image/png;base64,TEST');
     expect(html2canvas).toHaveBeenCalledWith(
-      document.body,
+      document.documentElement,
       expect.objectContaining({
         x: 25,
         y: 40,
         width: 100,
         height: 60,
         scale: 1,
+        useCORS: true,
       })
     );
     expect(toDataURL).toHaveBeenCalledWith('image/png');
   });
 
-  it('ignores overlay elements via ignoreElements callback', async () => {
+  it('ignores overlay and non-capturable elements via ignoreElements callback', async () => {
     const toDataURL = vi.fn().mockReturnValue('data:image/png;base64,TEST');
     (html2canvas as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ toDataURL });
 
@@ -50,6 +51,31 @@ describe('captureRegion', () => {
 
     expect(options.ignoreElements(overlay)).toBe(true);
     expect(options.ignoreElements(child)).toBe(true);
+    const iframe = document.createElement('iframe');
+    expect(options.ignoreElements(iframe)).toBe(true);
+    const canvas = document.createElement('canvas');
+    expect(options.ignoreElements(canvas)).toBe(true);
+    const imgExternal = document.createElement('img');
+    imgExternal.src = 'https://cdn.example.com/x.png';
+    expect(options.ignoreElements(imgExternal)).toBe(true);
+    const imgData = document.createElement('img');
+    imgData.src = 'data:image/png;base64,AAAA';
+    expect(options.ignoreElements(imgData)).toBe(false);
     expect(options.ignoreElements(document.createElement('div'))).toBe(false);
+  });
+
+  it('retries capture with relaxed CORS settings when first attempt fails', async () => {
+    const toDataURL = vi.fn().mockReturnValue('data:image/png;base64,RETRY');
+    (html2canvas as unknown as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error('first failed'))
+      .mockResolvedValueOnce({ toDataURL });
+
+    const result = await captureRegion({ x: 1, y: 2, width: 30, height: 40 });
+
+    expect(result).toBe('data:image/png;base64,RETRY');
+    const calls = (html2canvas as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+    expect(calls[0][1].useCORS).toBe(true);
+    expect(calls[1][1].useCORS).toBe(false);
   });
 });

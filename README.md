@@ -107,11 +107,32 @@ Options:
 />
 ```
 
+`projectRoot` is highest priority. If you pass it explicitly, that value is always used.
+
+### Project root via `.env` (auto-read)
+
+`<SparkAnnotation />` automatically reads these client-side env vars:
+
+- `VITE_SPARK_PROJECT_ROOT` (Vite)
+- `NEXT_PUBLIC_SPARK_PROJECT_ROOT` (Next.js)
+- `REACT_APP_SPARK_PROJECT_ROOT` (CRA)
+- `SPARK_PROJECT_ROOT`
+
+Examples:
+
+```bash
+# .env (Vite)
+VITE_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
+
+# .env.local (Next.js)
+NEXT_PUBLIC_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
+```
+
 ### Project root resolution order
 
 1. `projectRoot` prop
 2. `<meta name="spark-project-root" content="...">`
-3. `SPARK_PROJECT_ROOT` env var
+3. env vars above (`VITE_*/NEXT_PUBLIC_*/REACT_APP_*/SPARK_PROJECT_ROOT`)
 4. auto-detected from request origin + process cwd lookup
 5. bridge `--project` / bridge process cwd
 

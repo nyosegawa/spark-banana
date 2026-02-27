@@ -43,6 +43,21 @@ import 'spark-banana/styles.css';
 />
 ```
 
+`projectRoot` is highest priority. If you pass it explicitly, that value is always used.
+
+When `projectRoot` is omitted, `<SparkAnnotation />` auto-reads client env vars:
+
+- `VITE_SPARK_PROJECT_ROOT`
+- `NEXT_PUBLIC_SPARK_PROJECT_ROOT`
+- `REACT_APP_SPARK_PROJECT_ROOT`
+- `SPARK_PROJECT_ROOT`
+
+Example:
+
+```bash
+VITE_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
+```
+
 ## Full Docs
 
 - Repository: https://github.com/nyosegawa/spark-banana

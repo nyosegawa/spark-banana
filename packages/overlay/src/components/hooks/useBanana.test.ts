@@ -135,4 +135,24 @@ describe('useBanana', () => {
     const job = result.current.jobs.find((j) => j.id === jobId);
     expect(job?.logs).toEqual(['step-1', 'step-2']);
   });
+
+  it('keeps panel open and exposes captureError when screenshot capture fails', async () => {
+    const setPanelOpen = vi.fn();
+    (captureRegion as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('capture boom'));
+
+    const { result } = renderHook(() => useBanana(vi.fn(), vi.fn(), setPanelOpen));
+
+    act(() => {
+      result.current.handleMouseDown(makeMouseEvent(10, 10), true);
+      result.current.handleMouseMove(makeMouseEvent(120, 80));
+    });
+
+    await act(async () => {
+      await result.current.handleMouseUp(makeMouseEvent(120, 80));
+    });
+
+    expect(result.current.screenshot).toBeNull();
+    expect(result.current.captureError).toContain('capture boom');
+    expect(setPanelOpen).toHaveBeenCalledWith(true);
+  });
 });

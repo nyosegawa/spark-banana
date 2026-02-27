@@ -20,16 +20,57 @@ function genId(): string {
   return `sa-${Date.now()}-${++idCounter}`;
 }
 
+function readImportMetaEnv(): Record<string, unknown> {
+  try {
+    // Use runtime evaluation so CJS/SSR bundles do not break on import.meta.
+    const value = new Function('try { return import.meta.env; } catch { return undefined; }')();
+    return (value && typeof value === 'object') ? (value as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function readEnvVar(key: string): string | undefined {
+  const metaEnv = readImportMetaEnv();
+  const metaValue = metaEnv[key];
+  if (typeof metaValue === 'string' && metaValue.trim()) return metaValue.trim();
+
+  try {
+    const env = (process as unknown as { env?: Record<string, string | undefined> }).env;
+    const processValue = env?.[key];
+    if (processValue?.trim()) return processValue.trim();
+  } catch {
+    // ignore
+  }
+
+  try {
+    const globalValue = (window as unknown as Record<string, unknown>)[key];
+    if (typeof globalValue === 'string' && globalValue.trim()) return globalValue.trim();
+  } catch {
+    // ignore
+  }
+
+  return undefined;
+}
+
 function detectProjectRoot(): string | undefined {
   if (typeof document !== 'undefined') {
     const meta = document.querySelector('meta[name="spark-project-root"]')?.getAttribute('content');
     if (meta) return meta;
   }
-  try {
-    if (process.env.SPARK_PROJECT_ROOT) return process.env.SPARK_PROJECT_ROOT;
-  } catch {
-    // ignore
+
+  const keys = [
+    'VITE_SPARK_PROJECT_ROOT',
+    'NEXT_PUBLIC_SPARK_PROJECT_ROOT',
+    'REACT_APP_SPARK_PROJECT_ROOT',
+    'SPARK_PROJECT_ROOT',
+    '__SPARK_PROJECT_ROOT__',
+  ];
+  for (const key of keys) {
+    const value = readEnvVar(key);
+    if (value) return value;
   }
+
   return undefined;
 }
 
@@ -521,6 +562,9 @@ export function SparkAnnotation({
               )}
               {mode === 'banana' && !banana.screenshot && banana.jobs.length === 0 && (
                 <div className="sa-empty">{t('bananaEmpty1', locale)}<br />{t('bananaEmpty2', locale)}</div>
+              )}
+              {mode === 'banana' && banana.captureError && (
+                <div className="sa-error-banner">{banana.captureError}</div>
               )}
 
               {mode === 'banana' && banana.jobs.map((job) => (

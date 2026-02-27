@@ -938,6 +938,18 @@
   line-height: 1.5;
 }
 
+.sa-error-banner {
+  margin: 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--sa-red) 65%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--sa-red) 14%, transparent);
+  color: var(--sa-red);
+  font-size: 11px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 /* ===== Disconnected Banner ===== */
 
 .sa-disconnected-banner {

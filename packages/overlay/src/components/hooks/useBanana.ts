@@ -23,6 +23,7 @@ export function useBanana(
   const [drawing, setDrawing] = useState(false);
   const [rect, setRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const [instruction, setInstruction] = useState('');
   const drawRef = useRef({ startX: 0, startY: 0 });
 
@@ -52,6 +53,7 @@ export function useBanana(
   const resetInput = useCallback(() => {
     setRect(null);
     setScreenshot(null);
+    setCaptureError(null);
     setInstruction('');
   }, []);
 
@@ -131,6 +133,7 @@ export function useBanana(
     e.preventDefault();
     e.stopPropagation();
     drawRef.current = { startX: e.clientX, startY: e.clientY };
+    setCaptureError(null);
     setDrawing(true);
     setRect({ x: e.clientX, y: e.clientY, width: 0, height: 0 });
   }, []);
@@ -163,12 +166,16 @@ export function useBanana(
     try {
       const shot = await captureRegion(r);
       setScreenshot(shot);
+      setCaptureError(null);
       // Capture DOM elements in the region for Codex context
       regionElementsRef.current = captureElementsInRegion(r);
       setPanelOpen(true);
     } catch (err) {
       console.error('[spark-banana] Screenshot capture failed:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setCaptureError(`Capture failed: ${msg}`);
       setRect(null);
+      setPanelOpen(true);
     }
   }, [drawing, setPanelOpen]);
 
@@ -202,7 +209,7 @@ export function useBanana(
 
   return {
     // Input phase
-    drawing, rect, screenshot, instruction, setInstruction, resetInput,
+    drawing, rect, screenshot, captureError, instruction, setInstruction, resetInput,
     // API key
     apiKey, apiKeyInput, setApiKeyInput, apiKeySaved, saveApiKey, clearApiKey,
     // Model
