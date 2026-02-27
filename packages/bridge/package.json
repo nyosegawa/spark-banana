@@ -1,6 +1,6 @@
 {
   "name": "spark-bridge",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Bridge server connecting spark-banana overlay to Codex CLI",
   "license": "MIT",
   "main": "dist/server.js",
