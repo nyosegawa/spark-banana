@@ -1,0 +1,28 @@
+{
+  "name": "spark-bridge",
+  "version": "0.1.0",
+  "description": "Bridge server connecting spark-banana overlay to Codex CLI",
+  "license": "MIT",
+  "main": "dist/server.js",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "spark-bridge": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}
