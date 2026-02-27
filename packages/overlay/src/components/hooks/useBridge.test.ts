@@ -85,6 +85,31 @@ describe('useBridge', () => {
     expect(result.current.logsRef.current['ann-1']).toEqual(['[status] step1', '[status] step2']);
   });
 
+  it('creates a recovered annotation when progress arrives after reconnect', () => {
+    const { result } = renderUseBridge();
+    const client = bridgeInstances[0];
+
+    act(() => {
+      client.handlers.onProgress('lost-ann', '[status] resumed');
+    });
+
+    expect(result.current.annotations.some((a) => a.id === 'lost-ann')).toBe(true);
+  });
+
+  it('creates a recovered annotation when status arrives for unknown id', () => {
+    const { result } = renderUseBridge();
+    const client = bridgeInstances[0];
+
+    act(() => {
+      client.handlers.onStatus('lost-ann-2', 'applied', undefined, 'done');
+    });
+
+    const ann = result.current.annotations.find((a) => a.id === 'lost-ann-2');
+    expect(ann).toBeDefined();
+    expect(ann?.status).toBe('applied');
+    expect(ann?.response).toBe('done');
+  });
+
   it('moves restart state from restarting to failed on timeout', () => {
     const { result } = renderUseBridge();
     const client = bridgeInstances[0];
@@ -107,5 +132,19 @@ describe('useBridge', () => {
 
     unmount();
     expect(client.disconnect).toHaveBeenCalled();
+  });
+
+  it('does not create BridgeClient when projectRoot is missing', () => {
+    renderHook(() => useBridge(
+      'ws://localhost:3700',
+      undefined,
+      'gpt-5.3-codex',
+      vi.fn(),
+      vi.fn(),
+      vi.fn(),
+      vi.fn(),
+    ));
+
+    expect(bridgeInstances.length).toBe(0);
   });
 });

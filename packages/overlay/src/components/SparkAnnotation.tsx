@@ -64,6 +64,7 @@ export function SparkAnnotation({
   position = 'bottom-right',
 }: SparkAnnotationConfig = {}) {
   const resolvedProjectRoot = projectRoot || detectProjectRoot();
+  const missingProjectRoot = !resolvedProjectRoot;
 
   const [active, setActive] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -422,12 +423,24 @@ export function SparkAnnotation({
           {!bridge.connected && (
             <div className="sa-disconnected-banner">
               <div className="sa-disconnected-title">{t('bridgeDisconnected', locale)}</div>
-              <div className="sa-disconnected-hint">{t('bridgeHint', locale)}</div>
-              <code className="sa-disconnected-cmd">npx spark-bridge</code>
-              <div className="sa-disconnected-status">
-                <span className="sa-spinner" />
-                <span>{t('bridgeConnecting', locale)}</span>
-              </div>
+              {missingProjectRoot ? (
+                <>
+                  <div className="sa-disconnected-hint">
+                    Missing project root. Set `VITE_SPARK_PROJECT_ROOT` / `NEXT_PUBLIC_SPARK_PROJECT_ROOT`
+                    or pass `projectRoot` prop to SparkAnnotation.
+                  </div>
+                  <code className="sa-disconnected-cmd">VITE_SPARK_PROJECT_ROOT=/absolute/path/to/project</code>
+                </>
+              ) : (
+                <>
+                  <div className="sa-disconnected-hint">{t('bridgeHint', locale)}</div>
+                  <code className="sa-disconnected-cmd">npx spark-bridge</code>
+                  <div className="sa-disconnected-status">
+                    <span className="sa-spinner" />
+                    <span>{t('bridgeConnecting', locale)}</span>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

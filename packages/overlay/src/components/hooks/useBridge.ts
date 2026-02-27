@@ -22,6 +22,47 @@ export interface BridgeState {
   sendPlanApply: (annotationId: string, approach: string) => void;
 }
 
+function makeRecoveredAnnotation(
+  id: string,
+  status: Annotation['status'] = 'processing',
+  error?: string,
+  response?: string,
+): Annotation {
+  return {
+    id,
+    timestamp: Date.now(),
+    comment: '(recovered after reconnect)',
+    type: 'click',
+    status,
+    error,
+    response,
+    element: {
+      selector: '(restored)',
+      genericSelector: '(restored)',
+      fullPath: '(restored)',
+      tagName: 'div',
+      textContent: '',
+      cssClasses: [],
+      attributes: {},
+      boundingBox: { x: 0, y: 0, width: 0, height: 0 },
+      parentSelector: '(restored)',
+      nearbyText: '',
+    },
+  };
+}
+
+function ensureAnnotation(
+  prev: Annotation[],
+  id: string,
+  status: Annotation['status'] = 'processing',
+  error?: string,
+  response?: string,
+): Annotation[] {
+  const exists = prev.some((a) => a.id === id);
+  if (exists) return prev;
+  return [makeRecoveredAnnotation(id, status, error, response), ...prev];
+}
+
 export function useBridge(
   bridgeUrl: string,
   projectRoot: string | undefined,
@@ -40,20 +81,28 @@ export function useBridge(
   const clientRef = useRef<BridgeClient | null>(null);
 
   useEffect(() => {
+    if (!projectRoot?.trim()) {
+      setConnected(false);
+      clientRef.current = null;
+      return;
+    }
+
     const client = new BridgeClient(bridgeUrl, projectRoot);
     clientRef.current = client;
 
     client.connect({
       onStatus: (id, status, error, response) => {
-        setAnnotations((prev) =>
-          prev.map((a) => (a.id === id ? { ...a, status, error, response } : a))
-        );
+        setAnnotations((prev) => {
+          const withAnnotation = ensureAnnotation(prev, id, status, error, response);
+          return withAnnotation.map((a) => (a.id === id ? { ...a, status, error, response } : a));
+        });
         setPendingApproval((prev) =>
           prev?.annotationId === id && (status === 'applied' || status === 'failed') ? null : prev
         );
       },
       onProgress: (id, message) => {
         if (message) {
+          setAnnotations((prev) => ensureAnnotation(prev, id, 'processing'));
           if (!logsRef.current[id]) logsRef.current[id] = [];
           const logs = logsRef.current[id];
           if (logs.length === 0 || logs[logs.length - 1] !== message) logs.push(message);
@@ -72,11 +121,14 @@ export function useBridge(
       onBananaSuggestions,
       onBananaStatus,
       onBananaProgress,
-      onPlanVariantsReady,
+      onPlanVariantsReady: (annotationId, variants) => {
+        setAnnotations((prev) => ensureAnnotation(prev, annotationId, 'processing'));
+        onPlanVariantsReady(annotationId, variants);
+      },
     });
 
     return () => client.disconnect();
-  }, [bridgeUrl]);
+  }, [bridgeUrl, projectRoot]);
 
   return {
     connected, annotations, setAnnotations,

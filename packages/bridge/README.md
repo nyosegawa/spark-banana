@@ -26,6 +26,7 @@ npx spark-bridge [options]
 Options:
   --port <n>           WebSocket port (default: 3700)
   --project <path>     Project root directory (default: cwd)
+  --allow-default-project-root  Allow unregistered clients to use --project/cwd fallback (legacy)
   --model <name>       Codex model (default: gpt-5.3-codex-spark)
   --concurrency <n>    Max concurrent jobs (default: 1)
   --banana-model <n>   Gemini model for banana mode (optional)

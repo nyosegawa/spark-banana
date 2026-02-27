@@ -10,6 +10,9 @@ npm install
 
 # Install spark-banana
 npm install spark-banana -D
+
+# Set project root for SparkAnnotation
+echo "VITE_SPARK_PROJECT_ROOT=$(pwd)" > .env
 ```
 
 ## Add to your app
@@ -42,7 +45,9 @@ function App() {
       </div>
 
       {/* Add the annotation overlay (dev only) */}
-      {import.meta.env.DEV && <SparkAnnotation />}
+      {import.meta.env.DEV && (
+        <SparkAnnotation projectRoot={import.meta.env.VITE_SPARK_PROJECT_ROOT} />
+      )}
     </>
   );
 }

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { CodexMcp, type CodexMcpConfig } from './codex-mcp';
 import { Nanobanana } from './nanobanana';
 import { buildBananaApplyPrompt, buildSparkPlanPrompt, buildSparkPlanApplyPrompt, buildSparkPlanCancelPrompt } from './prompt-builder';
-import type { Annotation, BananaRequest, BananaSuggestion, ClientMessage } from './types';
+import type { Annotation, BananaRequest, BananaSuggestion, ClientMessage, ServerMessage } from './types';
 import { ConnectionRegistry } from './services/connection-registry';
 import { MessageRouter } from './services/message-router';
 import { ApprovalCoordinator } from './services/approval-coordinator';
@@ -21,6 +21,8 @@ export interface BridgeServerConfig {
   concurrency: number;
   /** Dry-run mode: simulate Codex responses without actually calling CLI */
   dryRun?: boolean;
+  /** Require clients to send `register` with a projectRoot before accepting requests */
+  requireProjectRoot?: boolean;
   /** Nanobanana (banana mode) config */
   nanobanana?: { model?: string; apiKey?: string };
 }
@@ -53,6 +55,8 @@ export class BridgeServer {
   private queue: AnnotationQueue<QueueItem>;
   /** Map annotationId → Codex threadId for session continuity */
   private threadMap = new Map<string, string>();
+  /** Map requestId/annotationId → projectRoot (for reconnect fallback routing) */
+  private requestProjectRoots = new Map<string, string>();
   private nanobanana: Nanobanana | null = null;
   private bananaRequests = new Map<string, BananaRequest>();
   private bananaApiKey: string | null = null;
@@ -129,6 +133,9 @@ export class BridgeServer {
       console.log('   Mode:    MCP (codex mcp-server)');
       console.log(`   Model:   ${this.config.codex.model || 'gpt-5.3-codex-spark'}`);
     }
+    if (this.config.requireProjectRoot) {
+      console.log('   Client projectRoot: required (register message)');
+    }
     console.log('   Waiting for annotations...');
     console.log();
   }
@@ -146,6 +153,19 @@ export class BridgeServer {
     return this.connections.getProjectRoot(ws);
   }
 
+  private routeToRequest(requestId: string, msg: ServerMessage) {
+    if (this.messages.sendToSender(requestId, msg)) return;
+
+    const projectRoot = this.requestProjectRoots.get(requestId);
+    if (!projectRoot) return;
+
+    for (const client of this.connections.getAllClients()) {
+      if (this.connections.getProjectRoot(client) === projectRoot) {
+        this.messages.send(client, msg);
+      }
+    }
+  }
+
   private handleMessage(ws: WebSocket, msg: ClientMessage) {
     switch (msg.type) {
       case 'register':
@@ -153,6 +173,16 @@ export class BridgeServer {
         console.log(`📂 Client registered: ${msg.projectRoot}`);
         break;
       case 'annotation':
+        if (this.config.requireProjectRoot && !this.connections.hasProjectRoot(ws)) {
+          console.log(`⚠ Rejected annotation ${msg.payload.id}: client did not register projectRoot`);
+          this.messages.send(ws, {
+            type: 'status',
+            annotationId: msg.payload.id,
+            status: 'failed',
+            error: 'Client projectRoot is required. Set VITE_SPARK_PROJECT_ROOT / NEXT_PUBLIC_SPARK_PROJECT_ROOT or pass SparkAnnotation projectRoot.',
+          });
+          break;
+        }
         this.enqueue(msg.payload, this.getProjectRoot(ws), ws, msg.plan);
         break;
       case 'approval_response':
@@ -171,6 +201,16 @@ export class BridgeServer {
         this.codex.setModel(msg.model);
         break;
       case 'banana_request': {
+        if (this.config.requireProjectRoot && !this.connections.hasProjectRoot(ws)) {
+          console.log(`⚠ Rejected banana_request ${msg.payload.id}: client did not register projectRoot`);
+          this.messages.send(ws, {
+            type: 'banana_status',
+            requestId: msg.payload.id,
+            status: 'failed',
+            error: 'Client projectRoot is required. Set VITE_SPARK_PROJECT_ROOT / NEXT_PUBLIC_SPARK_PROJECT_ROOT or pass SparkAnnotation projectRoot.',
+          });
+          break;
+        }
         const fast = msg.fast ?? false;
         console.log(`🍌 Received banana_request (apiKey: ${msg.apiKey ? 'yes' : 'no'}, model: ${msg.model || 'default'}, fast: ${fast})`);
         if (msg.apiKey) this.bananaApiKey = msg.apiKey;
@@ -210,13 +250,14 @@ export class BridgeServer {
     console.log(`   Project: ${projectRoot}`);
 
     this.messages.setRequestSender(annotation.id, sender);
+    this.requestProjectRoots.set(annotation.id, projectRoot);
     this.queue.enqueue({ annotation, projectRoot, sender, plan });
   }
 
   private async processQueueItem(item: QueueItem) {
     const { annotation, projectRoot, plan } = item;
 
-    this.messages.sendToSender(annotation.id, {
+    this.routeToRequest(annotation.id, {
       type: 'status',
       annotationId: annotation.id,
       status: 'processing',
@@ -234,7 +275,7 @@ export class BridgeServer {
 
   private async processWithCodex(annotation: Annotation, projectRoot: string, plan?: boolean) {
     const onProgress = (message: string) => {
-      this.messages.sendToSender(annotation.id, { type: 'progress', annotationId: annotation.id, message });
+      this.routeToRequest(annotation.id, { type: 'progress', annotationId: annotation.id, message });
     };
     const onApproval = (command: string) => this.requestApproval(annotation.id, command);
 
@@ -261,7 +302,7 @@ export class BridgeServer {
           const variants = parseSparkPlanMeta(result.output);
           if (variants.length > 0) {
             console.log(`   📋 Plan variants: ${variants.map((v) => v.title).join(', ')}`);
-            this.messages.sendToSender(annotation.id, {
+            this.routeToRequest(annotation.id, {
               type: 'plan_variants_ready',
               annotationId: annotation.id,
               variants,
@@ -269,7 +310,7 @@ export class BridgeServer {
           }
         }
 
-        this.messages.sendToSender(annotation.id, {
+        this.routeToRequest(annotation.id, {
           type: 'status',
           annotationId: annotation.id,
           status: 'applied',
@@ -277,7 +318,7 @@ export class BridgeServer {
         });
       } else {
         console.log(`❌ Failed: ${annotation.id} — ${result.error?.slice(0, 80)}`);
-        this.messages.sendToSender(annotation.id, {
+        this.routeToRequest(annotation.id, {
           type: 'status',
           annotationId: annotation.id,
           status: 'failed',
@@ -287,7 +328,7 @@ export class BridgeServer {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       console.log(`❌ Error: ${annotation.id} — ${errorMsg}`);
-      this.messages.sendToSender(annotation.id, {
+      this.routeToRequest(annotation.id, {
         type: 'status',
         annotationId: annotation.id,
         status: 'failed',
@@ -300,7 +341,7 @@ export class BridgeServer {
 
   private requestApproval(annotationId: string, command: string): Promise<boolean> {
     return this.approvals.request(annotationId, () => {
-      this.messages.sendToSender(annotationId, {
+      this.routeToRequest(annotationId, {
         type: 'approval_request',
         annotationId,
         command,
@@ -318,11 +359,12 @@ export class BridgeServer {
   private async handlePlanApply(annotationId: string, approach: string, _projectRoot: string, sender: WebSocket) {
     console.log(`📋 Plan apply: ${annotationId} → ${approach}`);
     this.messages.setRequestSender(annotationId, sender);
+    this.requestProjectRoots.set(annotationId, this.getProjectRoot(sender));
 
     const threadId = this.threadMap.get(annotationId);
     if (!threadId) {
       console.log(`❌ Plan apply failed: no thread for ${annotationId}`);
-      this.messages.sendToSender(annotationId, {
+      this.routeToRequest(annotationId, {
         type: 'status',
         annotationId,
         status: 'failed',
@@ -331,14 +373,14 @@ export class BridgeServer {
       return;
     }
 
-    this.messages.sendToSender(annotationId, {
+    this.routeToRequest(annotationId, {
       type: 'status',
       annotationId,
       status: 'processing',
     });
 
     const onProgress = (message: string) => {
-      this.messages.sendToSender(annotationId, { type: 'progress', annotationId, message });
+      this.routeToRequest(annotationId, { type: 'progress', annotationId, message });
     };
 
     try {
@@ -350,7 +392,7 @@ export class BridgeServer {
 
       if (result.success) {
         console.log(`✅ Plan ${approach === 'cancel' ? 'cancelled' : 'applied'}: ${annotationId}`);
-        this.messages.sendToSender(annotationId, {
+        this.routeToRequest(annotationId, {
           type: 'status',
           annotationId,
           status: 'applied',
@@ -358,7 +400,7 @@ export class BridgeServer {
         });
       } else {
         console.log(`❌ Plan apply failed: ${annotationId} — ${result.error?.slice(0, 80)}`);
-        this.messages.sendToSender(annotationId, {
+        this.routeToRequest(annotationId, {
           type: 'status',
           annotationId,
           status: 'failed',
@@ -368,7 +410,7 @@ export class BridgeServer {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       console.log(`❌ Plan apply error: ${annotationId} — ${errorMsg}`);
-      this.messages.sendToSender(annotationId, {
+      this.routeToRequest(annotationId, {
         type: 'status',
         annotationId,
         status: 'failed',
@@ -380,21 +422,21 @@ export class BridgeServer {
   private async processDryRun(annotation: Annotation) {
     const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    this.messages.sendToSender(annotation.id, {
+    this.routeToRequest(annotation.id, {
       type: 'progress',
       annotationId: annotation.id,
       message: '[dry-run] Codex に送信中...',
     });
     await delay(500);
 
-    this.messages.sendToSender(annotation.id, {
+    this.routeToRequest(annotation.id, {
       type: 'progress',
       annotationId: annotation.id,
       message: `[dry-run] セレクタ "${annotation.element.selector}" を解析中...`,
     });
     await delay(800);
 
-    this.messages.sendToSender(annotation.id, {
+    this.routeToRequest(annotation.id, {
       type: 'progress',
       annotationId: annotation.id,
       message: '[dry-run] コード変更を適用中...',
@@ -402,7 +444,7 @@ export class BridgeServer {
     await delay(700);
 
     console.log(`✅ [dry-run] Applied: ${annotation.id} (2.0s)`);
-    this.messages.sendToSender(annotation.id, {
+    this.routeToRequest(annotation.id, {
       type: 'status',
       annotationId: annotation.id,
       status: 'applied',
@@ -426,6 +468,7 @@ export class BridgeServer {
     console.log(`   Screenshot: ${screenshotKB}KB, Region: ${request.region.width}x${request.region.height}`);
 
     this.messages.setRequestSender(request.id, sender);
+    this.requestProjectRoots.set(request.id, projectRoot);
 
     if (!this.nanobanana) {
       console.log('❌ [banana] No nanobanana instance — API key missing?');

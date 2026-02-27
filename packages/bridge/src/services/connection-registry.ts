@@ -19,6 +19,11 @@ export class ConnectionRegistry {
     this.clientProjectRoots.set(ws, projectRoot);
   }
 
+  hasProjectRoot(ws: WebSocket): boolean {
+    const root = this.clientProjectRoots.get(ws);
+    return typeof root === 'string' && root.trim().length > 0;
+  }
+
   getProjectRoot(ws: WebSocket): string {
     return this.clientProjectRoots.get(ws) || this.defaultProjectRoot;
   }

@@ -8,6 +8,7 @@ interface Todo {
 }
 
 export function App() {
+  const projectRoot = import.meta.env.VITE_SPARK_PROJECT_ROOT as string | undefined;
   const [todos, setTodos] = useState<Todo[]>([
     { id: 1, text: 'spark-banana を試す', done: false },
     { id: 2, text: 'UI をクリックしてアノテーションを送る', done: false },
@@ -35,6 +36,25 @@ export function App() {
   };
 
   const remaining = todos.filter((t) => !t.done).length;
+  const todoItems = todos.map((todo) => (
+    <li key={todo.id} className={`todo-item ${todo.done ? 'done' : ''}`}>
+      <label className="todo-label">
+        <input
+          type="checkbox"
+          checked={todo.done}
+          onChange={() => toggleTodo(todo.id)}
+        />
+        <span className="todo-text">{todo.text}</span>
+      </label>
+      <button
+        className="delete-btn"
+        onClick={() => deleteTodo(todo.id)}
+      >
+        削除
+      </button>
+    </li>
+  ));
+  
 
   return (
     <div className="app">
@@ -59,24 +79,7 @@ export function App() {
         </div>
 
         <ul className="todo-list">
-          {todos.map((todo) => (
-            <li key={todo.id} className={`todo-item ${todo.done ? 'done' : ''}`}>
-              <label className="todo-label">
-                <input
-                  type="checkbox"
-                  checked={todo.done}
-                  onChange={() => toggleTodo(todo.id)}
-                />
-                <span className="todo-text">{todo.text}</span>
-              </label>
-              <button
-                className="delete-btn"
-                onClick={() => deleteTodo(todo.id)}
-              >
-                削除
-              </button>
-            </li>
-          ))}
+          {todoItems}
         </ul>
 
         {todos.length > 0 && (
@@ -99,7 +102,7 @@ export function App() {
         )}
       </main>
 
-      <SparkAnnotation />
+      <SparkAnnotation projectRoot={projectRoot} />
     </div>
   );
 }

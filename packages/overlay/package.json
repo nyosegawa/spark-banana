@@ -1,6 +1,6 @@
 {
   "name": "spark-banana",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Real-time UI annotation overlay for AI coding agents",
   "license": "MIT",
   "main": "dist/index.js",

@@ -33,7 +33,7 @@ Default endpoint: `ws://localhost:3700`
 ```tsx
 import { SparkAnnotation } from 'spark-banana';
 
-<SparkAnnotation />
+<SparkAnnotation projectRoot={import.meta.env.VITE_SPARK_PROJECT_ROOT} />
 ```
 
 Vite (`.env`):
@@ -63,7 +63,7 @@ import { SparkAnnotation } from 'spark-banana';
 
 export default function Spark() {
   if (process.env.NODE_ENV !== 'development') return null;
-  return <SparkAnnotation />;
+  return <SparkAnnotation projectRoot={process.env.NEXT_PUBLIC_SPARK_PROJECT_ROOT} />;
 }
 ```
 
@@ -102,6 +102,7 @@ npx spark-bridge [options]
 Options:
   --port <n>           WebSocket port (default: 3700)
   --project <path>     Project root directory (default: cwd)
+  --allow-default-project-root  Allow unregistered clients to use --project/cwd fallback (legacy)
   --model <name>       Codex model (default: gpt-5.3-codex-spark)
   --concurrency <n>    Max concurrent jobs (default: 1)
   --banana-model <n>   Gemini model for banana mode (optional)
@@ -119,7 +120,8 @@ Options:
 />
 ```
 
-`projectRoot` is optional. If omitted, `VITE_SPARK_PROJECT_ROOT` (Vite) or `NEXT_PUBLIC_SPARK_PROJECT_ROOT` (Next.js) is used.
+Set `projectRoot` explicitly or via `VITE_SPARK_PROJECT_ROOT` (Vite) / `NEXT_PUBLIC_SPARK_PROJECT_ROOT` (Next.js).
+By default, `spark-bridge` now rejects unregistered clients unless `--allow-default-project-root` is passed.
 
 ## Main Features
 

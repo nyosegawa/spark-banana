@@ -16,11 +16,13 @@ export class MessageRouter {
     }
   }
 
-  sendToSender(requestId: string, msg: ServerMessage) {
+  sendToSender(requestId: string, msg: ServerMessage): boolean {
     const sender = this.requestSenders.get(requestId);
     if (sender && sender.readyState === WebSocket.OPEN) {
       sender.send(JSON.stringify(msg));
+      return true;
     }
+    return false;
   }
 
   send(ws: WebSocket, msg: ServerMessage) {

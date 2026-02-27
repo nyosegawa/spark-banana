@@ -226,6 +226,59 @@ describe('BridgeServer', () => {
       expect(pong.type).toBe('pong');
       ws.close();
     });
+
+    it('rejects annotation when requireProjectRoot is enabled and client is unregistered', async () => {
+      server = new BridgeServer({
+        port,
+        codex: { projectRoot: '/tmp' },
+        concurrency: 1,
+        dryRun: true,
+        requireProjectRoot: true,
+      });
+      await server.start();
+
+      const ws = new WebSocket(`ws://localhost:${port}`);
+      await waitForMessage(ws); // consume 'connected'
+
+      ws.send(JSON.stringify({ type: 'annotation', payload: makeAnnotation({ id: 'strict-ann' }) }));
+      const failed = await waitForMessageType(ws, 'status', (msg) =>
+        msg.annotationId === 'strict-ann' && msg.status === 'failed'
+      );
+      expect(failed.error).toContain('Client projectRoot is required');
+      ws.close();
+    });
+
+    it('rejects banana_request when requireProjectRoot is enabled and client is unregistered', async () => {
+      server = new BridgeServer({
+        port,
+        codex: { projectRoot: '/tmp' },
+        concurrency: 1,
+        dryRun: true,
+        requireProjectRoot: true,
+      });
+      await server.start();
+
+      const ws = new WebSocket(`ws://localhost:${port}`);
+      await waitForMessage(ws); // consume 'connected'
+
+      ws.send(JSON.stringify({
+        type: 'banana_request',
+        payload: {
+          id: 'strict-banana',
+          timestamp: Date.now(),
+          screenshot: 'data:image/png;base64,AAA',
+          region: { x: 0, y: 0, width: 100, height: 80 },
+          instruction: 'make it nicer',
+          status: 'pending',
+        },
+      }));
+
+      const failed = await waitForMessageType(ws, 'banana_status', (msg) =>
+        msg.requestId === 'strict-banana' && msg.status === 'failed'
+      );
+      expect(failed.error).toContain('Client projectRoot is required');
+      ws.close();
+    });
   });
 
   describe('dry-run processing', () => {
@@ -390,6 +443,38 @@ describe('BridgeServer', () => {
       ws1.close();
       ws2.close();
     });
+
+    it('routes in-flight annotation updates to reconnected client in the same projectRoot', async () => {
+      server = new BridgeServer({
+        port,
+        codex: { projectRoot: '/tmp' },
+        concurrency: 1,
+        dryRun: true,
+      });
+      await server.start();
+
+      const ws1 = new WebSocket(`ws://localhost:${port}`);
+      await waitForMessage(ws1); // connected
+      ws1.send(JSON.stringify({ type: 'register', projectRoot: '/tmp/reconnect-project' }));
+
+      ws1.send(JSON.stringify({ type: 'annotation', payload: makeAnnotation({ id: 'reconnect-ann' }) }));
+      await waitForMessageType(ws1, 'status', (msg) =>
+        msg.annotationId === 'reconnect-ann' && msg.status === 'processing'
+      );
+
+      ws1.close();
+
+      const ws2 = new WebSocket(`ws://localhost:${port}`);
+      await waitForMessage(ws2); // connected
+      ws2.send(JSON.stringify({ type: 'register', projectRoot: '/tmp/reconnect-project' }));
+
+      const applied = await waitForMessageType(ws2, 'status', (msg) =>
+        msg.annotationId === 'reconnect-ann' && msg.status === 'applied'
+      );
+      expect(applied.status).toBe('applied');
+
+      ws2.close();
+    }, 10000);
   });
 
   describe('restart_codex', () => {

@@ -80,7 +80,7 @@ describe('SparkAnnotation', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => store[key] || null);
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => { store[key] = value; });
 
-    delete (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT;
+    (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT = '/tmp/default-root';
     delete (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT;
   });
 
@@ -146,6 +146,7 @@ describe('SparkAnnotation', () => {
 
   it('uses env project root when projectRoot prop is omitted', () => {
     (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT = '/tmp/from-next-env';
+    delete (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT;
     render(<SparkAnnotation />);
     expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
     expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-next-env');
@@ -171,6 +172,13 @@ describe('SparkAnnotation', () => {
     render(<SparkAnnotation />);
     expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
     expect(bridgeInstances[0].url).toBe('ws://localhost:3700');
+  });
+
+  it('does not create BridgeClient when projectRoot is missing', () => {
+    delete (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT;
+    delete (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT;
+    render(<SparkAnnotation />);
+    expect(bridgeInstances.length).toBe(0);
   });
 
   it('calls connect on BridgeClient on mount', () => {
