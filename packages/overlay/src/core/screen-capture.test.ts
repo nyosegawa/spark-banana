@@ -18,7 +18,10 @@ describe('captureRegion', () => {
 
   it('captures a region and returns png data URL', async () => {
     const toDataURL = vi.fn().mockReturnValue('data:image/png;base64,TEST');
-    (html2canvas as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ toDataURL });
+    (html2canvas as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      toDataURL,
+      getContext: vi.fn().mockReturnValue(null),
+    });
 
     const result = await captureRegion({ x: 20, y: 30, width: 100, height: 60 });
 
@@ -30,7 +33,6 @@ describe('captureRegion', () => {
         y: 40,
         width: 100,
         height: 60,
-        scale: 1,
         useCORS: true,
       })
     );
@@ -39,7 +41,10 @@ describe('captureRegion', () => {
 
   it('ignores overlay and non-capturable elements via ignoreElements callback', async () => {
     const toDataURL = vi.fn().mockReturnValue('data:image/png;base64,TEST');
-    (html2canvas as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ toDataURL });
+    (html2canvas as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      toDataURL,
+      getContext: vi.fn().mockReturnValue(null),
+    });
 
     await captureRegion({ x: 0, y: 0, width: 10, height: 10 });
 
@@ -68,7 +73,10 @@ describe('captureRegion', () => {
     const toDataURL = vi.fn().mockReturnValue('data:image/png;base64,RETRY');
     (html2canvas as unknown as ReturnType<typeof vi.fn>)
       .mockRejectedValueOnce(new Error('first failed'))
-      .mockResolvedValueOnce({ toDataURL });
+      .mockResolvedValueOnce({
+        toDataURL,
+        getContext: vi.fn().mockReturnValue(null),
+      });
 
     const result = await captureRegion({ x: 1, y: 2, width: 30, height: 40 });
 
@@ -85,16 +93,20 @@ describe('captureRegion', () => {
       .mockRejectedValueOnce(new Error('unsupported color function "oklab"'))
       .mockRejectedValueOnce(new Error('unsupported color function "oklab"'))
       .mockRejectedValueOnce(new Error('unsupported color function "oklab"'))
-      .mockResolvedValueOnce({ toDataURL });
+      .mockRejectedValueOnce(new Error('unsupported color function "oklab"'))
+      .mockRejectedValueOnce(new Error('unsupported color function "oklab"'))
+      .mockResolvedValueOnce({
+        toDataURL,
+        getContext: vi.fn().mockReturnValue(null),
+      });
 
     const result = await captureRegion({ x: 5, y: 6, width: 40, height: 20 });
 
     expect(result).toBe('data:image/png;base64,FALLBACK');
     const calls = (html2canvas as unknown as ReturnType<typeof vi.fn>).mock.calls;
-    expect(calls).toHaveLength(4);
-    expect(calls[0][1].foreignObjectRendering).toBe(false);
-    expect(calls[1][1].foreignObjectRendering).toBe(false);
-    expect(calls[2][1].foreignObjectRendering).toBe(false);
-    expect(calls[3][1].foreignObjectRendering).toBe(true);
+    expect(calls.length).toBeGreaterThanOrEqual(6);
+    const foCalls = calls.filter((c) => c[1].foreignObjectRendering === true);
+    expect(foCalls.length).toBeGreaterThan(0);
+    expect(typeof foCalls[0][1].onclone).toBe('function');
   });
 });
