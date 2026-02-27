@@ -1,5 +1,4 @@
 import { WebSocket } from 'ws';
-import { detectProjectRootFromOrigin } from './project-root-detector';
 
 export class ConnectionRegistry {
   private clients = new Set<WebSocket>();
@@ -18,15 +17,6 @@ export class ConnectionRegistry {
 
   setProjectRoot(ws: WebSocket, projectRoot: string) {
     this.clientProjectRoots.set(ws, projectRoot);
-  }
-
-  setProjectRootFromOrigin(ws: WebSocket, origin?: string): string | null {
-    if (!origin) return null;
-    const detected = detectProjectRootFromOrigin(origin);
-    if (detected) {
-      this.clientProjectRoots.set(ws, detected);
-    }
-    return detected;
   }
 
   getProjectRoot(ws: WebSocket): string {

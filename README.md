@@ -36,6 +36,18 @@ import { SparkAnnotation } from 'spark-banana';
 <SparkAnnotation />
 ```
 
+Vite (`.env`):
+
+```bash
+VITE_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
+```
+
+Next.js (`.env.local`):
+
+```bash
+NEXT_PUBLIC_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
+```
+
 `SparkAnnotation` import automatically injects overlay styles.
 If your CSP blocks inline style tags, add:
 
@@ -102,39 +114,12 @@ Options:
 ```tsx
 <SparkAnnotation
   bridgeUrl="ws://localhost:3700"
-  projectRoot="/path/to/project"
+  projectRoot="/absolute/path/to/your/project"
   position="bottom-right" // or "bottom-left"
 />
 ```
 
-`projectRoot` is highest priority. If you pass it explicitly, that value is always used.
-
-### Project root via `.env` (auto-read)
-
-`<SparkAnnotation />` automatically reads these client-side env vars:
-
-- `VITE_SPARK_PROJECT_ROOT` (Vite)
-- `NEXT_PUBLIC_SPARK_PROJECT_ROOT` (Next.js)
-- `REACT_APP_SPARK_PROJECT_ROOT` (CRA)
-- `SPARK_PROJECT_ROOT`
-
-Examples:
-
-```bash
-# .env (Vite)
-VITE_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
-
-# .env.local (Next.js)
-NEXT_PUBLIC_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
-```
-
-### Project root resolution order
-
-1. `projectRoot` prop
-2. `<meta name="spark-project-root" content="...">`
-3. env vars above (`VITE_*/NEXT_PUBLIC_*/REACT_APP_*/SPARK_PROJECT_ROOT`)
-4. auto-detected from request origin + process cwd lookup
-5. bridge `--project` / bridge process cwd
+`projectRoot` is optional. If omitted, `VITE_SPARK_PROJECT_ROOT` (Vite) or `NEXT_PUBLIC_SPARK_PROJECT_ROOT` (Next.js) is used.
 
 ## Main Features
 
@@ -160,7 +145,6 @@ NEXT_PUBLIC_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
 - `src/services/message-router.ts`: sender-aware message delivery
 - `src/services/approval-coordinator.ts`: pending approval lifecycle
 - `src/services/annotation-queue.ts`: concurrency-safe processing queue
-- `src/services/project-root-detector.ts`: origin-based project root detection
 - `src/services/codex-event-interpreter.ts`: Codex notification normalization
 - `src/core/plan-meta-parser.ts`: robust plan metadata parsing/fallback
 

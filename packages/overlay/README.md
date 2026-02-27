@@ -26,6 +26,20 @@ export default function App() {
 
 By default, it connects to `ws://localhost:3700`.
 
+Set project root via env.
+
+Vite (`.env`):
+
+```bash
+VITE_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
+```
+
+Next.js (`.env.local`):
+
+```bash
+NEXT_PUBLIC_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
+```
+
 Styles are injected automatically when you import `SparkAnnotation`.
 If your CSP blocks inline `<style>` tags, import the stylesheet explicitly:
 
@@ -38,24 +52,9 @@ import 'spark-banana/styles.css';
 ```tsx
 <SparkAnnotation
   bridgeUrl="ws://localhost:3700"
-  projectRoot="/path/to/project"
+  projectRoot="/absolute/path/to/your/project"
   position="bottom-right" // or "bottom-left"
 />
-```
-
-`projectRoot` is highest priority. If you pass it explicitly, that value is always used.
-
-When `projectRoot` is omitted, `<SparkAnnotation />` auto-reads client env vars:
-
-- `VITE_SPARK_PROJECT_ROOT`
-- `NEXT_PUBLIC_SPARK_PROJECT_ROOT`
-- `REACT_APP_SPARK_PROJECT_ROOT`
-- `SPARK_PROJECT_ROOT`
-
-Example:
-
-```bash
-VITE_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
 ```
 
 ## Full Docs

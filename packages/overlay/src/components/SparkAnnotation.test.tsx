@@ -79,11 +79,15 @@ describe('SparkAnnotation', () => {
     const store: Record<string, string> = {};
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => store[key] || null);
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => { store[key] = value; });
+
+    delete (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT;
+    delete (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT;
   });
 
   afterEach(() => {
     cleanup();
-    delete (process.env as Record<string, string | undefined>).SPARK_PROJECT_ROOT;
+    delete (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT;
+    delete (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT;
     vi.restoreAllMocks();
   });
 
@@ -141,14 +145,23 @@ describe('SparkAnnotation', () => {
   });
 
   it('uses env project root when projectRoot prop is omitted', () => {
-    (process.env as Record<string, string | undefined>).SPARK_PROJECT_ROOT = '/tmp/from-env';
+    (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT = '/tmp/from-next-env';
     render(<SparkAnnotation />);
     expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
-    expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-env');
+    expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-next-env');
+  });
+
+  it('prefers Vite env project root over Next.js env when both are present', () => {
+    (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT = '/tmp/from-next-env';
+    (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT = '/tmp/from-vite-env';
+
+    render(<SparkAnnotation />);
+    expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
+    expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-vite-env');
   });
 
   it('prefers explicit projectRoot prop over env', () => {
-    (process.env as Record<string, string | undefined>).SPARK_PROJECT_ROOT = '/tmp/from-env';
+    (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT = '/tmp/from-next-env';
     render(<SparkAnnotation projectRoot="/tmp/from-prop" />);
     expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
     expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-prop');

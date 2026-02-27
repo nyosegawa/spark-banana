@@ -22,7 +22,7 @@ function genId(): string {
 
 function readImportMetaEnv(): Record<string, unknown> {
   try {
-    // Bundlers (Vite/Next/CRA) replace import.meta.env values at build time.
+    // Vite exposes public env on import.meta.env.
     const meta = import.meta as unknown as { env?: Record<string, unknown> };
     const env = meta?.env;
     return (env && typeof env === 'object') ? env : {};
@@ -31,45 +31,28 @@ function readImportMetaEnv(): Record<string, unknown> {
   }
 }
 
-function readEnvVar(key: string): string | undefined {
-  const metaEnv = readImportMetaEnv();
-  const metaValue = metaEnv[key];
-  if (typeof metaValue === 'string' && metaValue.trim()) return metaValue.trim();
-
-  try {
-    const env = (process as unknown as { env?: Record<string, string | undefined> }).env;
-    const processValue = env?.[key];
-    if (processValue?.trim()) return processValue.trim();
-  } catch {
-    // ignore
-  }
-
-  try {
-    const globalValue = (window as unknown as Record<string, unknown>)[key];
-    if (typeof globalValue === 'string' && globalValue.trim()) return globalValue.trim();
-  } catch {
-    // ignore
-  }
-
-  return undefined;
+function readTrimmedString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
 }
 
 function detectProjectRoot(): string | undefined {
-  if (typeof document !== 'undefined') {
-    const meta = document.querySelector('meta[name="spark-project-root"]')?.getAttribute('content');
-    if (meta) return meta;
+  const viteValue = readTrimmedString(readImportMetaEnv().VITE_SPARK_PROJECT_ROOT);
+  if (viteValue) return viteValue;
+
+  try {
+    const viteProcessValue = readTrimmedString(process.env.VITE_SPARK_PROJECT_ROOT);
+    if (viteProcessValue) return viteProcessValue;
+  } catch {
+    // ignore
   }
 
-  const keys = [
-    'VITE_SPARK_PROJECT_ROOT',
-    'NEXT_PUBLIC_SPARK_PROJECT_ROOT',
-    'REACT_APP_SPARK_PROJECT_ROOT',
-    'SPARK_PROJECT_ROOT',
-    '__SPARK_PROJECT_ROOT__',
-  ];
-  for (const key of keys) {
-    const value = readEnvVar(key);
-    if (value) return value;
+  try {
+    const nextValue = readTrimmedString(process.env.NEXT_PUBLIC_SPARK_PROJECT_ROOT);
+    if (nextValue) return nextValue;
+  } catch {
+    // ignore
   }
 
   return undefined;

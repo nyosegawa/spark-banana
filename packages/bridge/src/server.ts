@@ -96,13 +96,8 @@ export class BridgeServer {
       throw err;
     });
 
-    this.wss.on('connection', (ws, req) => {
+    this.wss.on('connection', (ws) => {
       this.connections.addClient(ws);
-
-      const detected = this.connections.setProjectRootFromOrigin(ws, req.headers.origin);
-      if (detected && req.headers.origin) {
-        console.log(`📂 Auto-detected project: ${detected} (from ${req.headers.origin})`);
-      }
 
       this.messages.send(ws, { type: 'connected' });
 
