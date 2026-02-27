@@ -78,11 +78,88 @@ async function tryCapture(
   if (!hasVisiblePixels(canvas)) {
     throw new Error('[spark-banana] captureRegion returned empty image');
   }
-  if (isSuspiciousTopLeftFragment(canvas)) {
-    throw new Error('[spark-banana] captureRegion returned suspicious partial image');
-  }
 
   return canvas.toDataURL('image/png');
+}
+
+async function tryCaptureViewportCrop(
+  rect: { x: number; y: number; width: number; height: number },
+  options: {
+    useCORS: boolean;
+    foreignObjectRendering: boolean;
+    sanitizeUnsupportedColors: boolean;
+    stripStylesheets: boolean;
+  },
+): Promise<string> {
+  const unsupportedColorPattern = /(oklab|oklch)\([^)]*\)/gi;
+  const viewportCanvas = await html2canvas(document.body as HTMLElement, {
+    x: 0,
+    y: 0,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    scale: 1,
+    scrollX: -window.scrollX,
+    scrollY: -window.scrollY,
+    useCORS: options.useCORS,
+    foreignObjectRendering: options.foreignObjectRendering,
+    logging: false,
+    backgroundColor: null,
+    imageTimeout: 1500,
+    ignoreElements: shouldIgnoreCaptureElement,
+    onclone: (options.sanitizeUnsupportedColors || options.stripStylesheets)
+      ? (clonedDoc) => {
+          if (options.stripStylesheets) {
+            clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => el.remove());
+            return;
+          }
+
+          if (options.sanitizeUnsupportedColors) {
+            const styleElements = clonedDoc.querySelectorAll('style');
+            for (const styleEl of styleElements) {
+              const cssText = styleEl.textContent;
+              if (!cssText || !/(oklab|oklch)\(/i.test(cssText)) continue;
+              styleEl.textContent = cssText.replace(unsupportedColorPattern, 'rgb(0 0 0 / 0)');
+            }
+
+            const inlineStyledElements = clonedDoc.querySelectorAll<HTMLElement>('[style]');
+            for (const el of inlineStyledElements) {
+              const styleAttr = el.getAttribute('style');
+              if (!styleAttr || !/(oklab|oklch)\(/i.test(styleAttr)) continue;
+              el.setAttribute('style', styleAttr.replace(unsupportedColorPattern, 'rgb(0 0 0 / 0)'));
+            }
+          }
+        }
+      : undefined,
+  });
+
+  const crop = document.createElement('canvas');
+  crop.width = rect.width;
+  crop.height = rect.height;
+  const ctx = crop.getContext('2d');
+  if (!ctx) throw new Error('[spark-banana] captureRegion crop context unavailable');
+
+  const sx = Math.max(0, Math.floor(rect.x));
+  const sy = Math.max(0, Math.floor(rect.y));
+  const sw = Math.min(rect.width, Math.max(1, viewportCanvas.width - sx));
+  const sh = Math.min(rect.height, Math.max(1, viewportCanvas.height - sy));
+
+  ctx.drawImage(
+    viewportCanvas,
+    sx,
+    sy,
+    sw,
+    sh,
+    0,
+    0,
+    rect.width,
+    rect.height,
+  );
+
+  if (!hasVisiblePixels(crop)) {
+    throw new Error('[spark-banana] captureRegion returned empty image');
+  }
+
+  return crop.toDataURL('image/png');
 }
 
 function hasVisiblePixels(canvas: HTMLCanvasElement): boolean {
@@ -102,47 +179,6 @@ function hasVisiblePixels(canvas: HTMLCanvasElement): boolean {
   }
 }
 
-function isSuspiciousTopLeftFragment(canvas: HTMLCanvasElement): boolean {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return false;
-  try {
-    const { width, height } = canvas;
-    if (width <= 0 || height <= 0) return false;
-    const data = ctx.getImageData(0, 0, width, height).data;
-
-    let minX = width;
-    let minY = height;
-    let maxX = -1;
-    let maxY = -1;
-    let nonTransparent = 0;
-    const sampleStep = Math.max(1, Math.floor((width * height) / 20000));
-
-    for (let i = 0, p = 0; i < data.length; i += 4, p++) {
-      if (p % sampleStep !== 0) continue;
-      const alpha = data[i + 3];
-      if (alpha <= 5) continue;
-      nonTransparent++;
-      const pixelIndex = i / 4;
-      const x = pixelIndex % width;
-      const y = Math.floor(pixelIndex / width);
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-    }
-
-    if (nonTransparent === 0) return false;
-    const contentWidth = Math.max(1, maxX - minX + 1);
-    const contentHeight = Math.max(1, maxY - minY + 1);
-    const nearTopLeft = minX < width * 0.05 && minY < height * 0.05;
-    const tooNarrow = contentWidth < width * 0.45;
-    const tooShort = contentHeight < height * 0.45;
-    return nearTopLeft && (tooNarrow || tooShort);
-  } catch {
-    return false;
-  }
-}
-
 function isUnsupportedColorFunctionError(err: unknown): boolean {
   const message = err instanceof Error ? err.message : String(err);
   return /unsupported color function|oklab|oklch/i.test(message);
@@ -159,6 +195,16 @@ export async function captureRegion(rect: {
   };
   const targets = [document.documentElement as HTMLElement, document.body as HTMLElement]
     .filter((t): t is HTMLElement => !!t);
+  try {
+    return await tryCaptureViewportCrop(normalized, {
+      useCORS: false,
+      foreignObjectRendering: true,
+      sanitizeUnsupportedColors: false,
+      stripStylesheets: false,
+    });
+  } catch {
+    // fallback to region capture below
+  }
   const attempts: Array<{
     target: HTMLElement;
     mode: 'region';
