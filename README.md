@@ -36,6 +36,13 @@ import { SparkAnnotation } from 'spark-banana';
 <SparkAnnotation />
 ```
 
+`SparkAnnotation` import automatically injects overlay styles.
+If your CSP blocks inline style tags, add:
+
+```tsx
+import 'spark-banana/styles.css';
+```
+
 Next.js example:
 
 ```tsx

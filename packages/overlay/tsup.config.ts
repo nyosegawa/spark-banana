@@ -4,5 +4,6 @@ export default defineConfig({
   entry: { index: 'src/index.ts' },
   format: ['cjs', 'esm'],
   dts: true,
+  injectStyle: true,
   external: ['react', 'react-dom'],
 });

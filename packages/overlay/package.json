@@ -1,6 +1,6 @@
 {
   "name": "spark-banana",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Real-time UI annotation overlay for AI coding agents",
   "license": "MIT",
   "main": "dist/index.js",
@@ -11,13 +11,15 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    }
+    },
+    "./styles.css": "./dist/styles.css"
   },
+  "style": "dist/styles.css",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node -e \"require('node:fs').copyFileSync('src/styles/overlay.css', 'dist/styles.css')\"",
     "dev": "tsup --watch"
   },
   "dependencies": {

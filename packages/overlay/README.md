@@ -26,6 +26,13 @@ export default function App() {
 
 By default, it connects to `ws://localhost:3700`.
 
+Styles are injected automatically when you import `SparkAnnotation`.
+If your CSP blocks inline `<style>` tags, import the stylesheet explicitly:
+
+```tsx
+import 'spark-banana/styles.css';
+```
+
 ## Props
 
 ```tsx
