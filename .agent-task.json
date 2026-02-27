@@ -1,0 +1,51 @@
+{
+  "description": "spark-banana は React 向け UI 注釈オーバーレイ（packages/overlay）と Codex CLI 連携 WebSocket ブリッジ（packages/bridge）を持つ npm workspaces モノレポです。TypeScript/React/Vite/Next.js で構成され、ローカル開発中の画面要素に対する修正指示を AI エージェントに渡せます。",
+  "commands": [
+    {
+      "name": "Install dependencies",
+      "command": "npm install"
+    },
+    {
+      "name": "Dev (Vite example via portless)",
+      "command": "portless spark-annotation npm run dev"
+    },
+    {
+      "name": "Build",
+      "command": "npm run build"
+    },
+    {
+      "name": "Test",
+      "command": "npm test"
+    },
+    {
+      "name": "Dev bridge only",
+      "command": "npm run dev -w spark-bridge"
+    }
+  ],
+  "links": [
+    {
+      "name": "Portless dev app",
+      "url": "http://spark-annotation.localhost:1355/"
+    },
+    {
+      "name": "GitHub repository",
+      "url": "https://github.com/nyosegawa/spark-banana"
+    },
+    {
+      "name": "Main README",
+      "url": "https://github.com/nyosegawa/spark-banana#readme"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "バグ修正",
+      "agent": "claude-code",
+      "prompt": "現象を再現し、原因を特定して最小差分で修正してください。必要ならテストを追加し、変更理由も説明してください。"
+    },
+    {
+      "name": "新機能追加",
+      "agent": "claude-code",
+      "prompt": "要件を整理して実装計画を立て、既存構成に沿って新機能を実装してください。必要なテストとREADME更新も行ってください。"
+    }
+  ]
+}
