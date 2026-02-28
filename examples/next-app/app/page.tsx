@@ -10,9 +10,9 @@ interface Todo {
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([
-    { id: 1, text: 'spark-banana を試す', done: false },
-    { id: 2, text: 'UI をクリックしてアノテーションを送る', done: false },
-    { id: 3, text: 'サンプルアプリを改造する', done: false },
+    { id: 1, text: 'Try spark-banana', done: false },
+    { id: 2, text: 'Click UI to send annotations', done: false },
+    { id: 3, text: 'Customize this sample app', done: false },
   ]);
   const [input, setInput] = useState('');
 
@@ -40,8 +40,8 @@ export default function Home() {
   return (
     <div className="app">
       <header className="header">
-        <h1>タスク</h1>
-        <p className="subtitle">spark-bananaのサンプル</p>
+        <h1>Todo App</h1>
+        <p className="subtitle">spark-banana example</p>
       </header>
 
       <main className="main">
@@ -49,25 +49,19 @@ export default function Home() {
           <input
             className="todo-input"
             type="text"
-            placeholder="やることを入力してください"
+            placeholder="What needs to be done?"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addTodo()}
           />
           <button className="add-btn" onClick={addTodo}>
-            追加
+            Add
           </button>
         </div>
 
         <ul className="todo-list">
-          <li className="todo-head" aria-hidden="true">
-            <span className="head-id">ID</span>
-            <span className="head-task">タスク名</span>
-            <span className="head-status">ステータス</span>
-          </li>
-          {todos.map((todo, index) => (
+          {todos.map((todo) => (
             <li key={todo.id} className={`todo-item ${todo.done ? 'done' : ''}`}>
-              <span className="todo-id">{111 + index}</span>
               <label className="todo-label">
                 <input
                   type="checkbox"
@@ -76,12 +70,11 @@ export default function Home() {
                 />
                 <span className="todo-text">{todo.text}</span>
               </label>
-              <span className="todo-status">{todo.done ? '完了済み' : '進行中'}</span>
               <button
                 className="delete-btn"
                 onClick={() => deleteTodo(todo.id)}
               >
-                削除
+                Delete
               </button>
             </li>
           ))}
@@ -89,20 +82,20 @@ export default function Home() {
 
         {todos.length > 0 && (
           <footer className="footer">
-            <span className="remaining">{remaining} 件残り</span>
+            <span className="remaining">{remaining} item{remaining !== 1 ? 's' : ''} left</span>
             <button
               className="clear-btn"
               onClick={() => setTodos((prev) => prev.filter((t) => !t.done))}
               disabled={remaining === todos.length}
             >
-              完了済みを削除
+              Clear completed
             </button>
           </footer>
         )}
 
         {todos.length === 0 && (
           <div className="empty-state">
-            <p>タスクがありません。上の入力欄から追加してください。</p>
+            <p>No todos yet. Add one above!</p>
           </div>
         )}
       </main>
