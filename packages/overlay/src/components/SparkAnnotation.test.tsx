@@ -70,6 +70,10 @@ vi.mock('../core/selector-engine', () => ({
 }));
 
 describe('SparkAnnotation', () => {
+  const defaultProjectRoot = '/tmp/default-root';
+  const renderAnnotation = (props: Partial<React.ComponentProps<typeof SparkAnnotation>> = {}) =>
+    render(<SparkAnnotation projectRoot={defaultProjectRoot} {...props} />);
+
   beforeEach(() => {
     bridgeInstances = [];
     // Mock window dimensions
@@ -79,49 +83,44 @@ describe('SparkAnnotation', () => {
     const store: Record<string, string> = {};
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => store[key] || null);
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => { store[key] = value; });
-
-    (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT = '/tmp/default-root';
-    delete (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT;
   });
 
   afterEach(() => {
     cleanup();
-    delete (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT;
-    delete (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT;
     vi.restoreAllMocks();
   });
 
   it('renders without crashing', () => {
-    const { container } = render(<SparkAnnotation />);
+    const { container } = renderAnnotation();
     expect(container).toBeDefined();
   });
 
   it('renders the FAB button', () => {
-    const { container } = render(<SparkAnnotation />);
+    const { container } = renderAnnotation();
     const fab = container.querySelector('.sa-fab');
     expect(fab).not.toBeNull();
   });
 
   it('renders with sa-overlay wrapper', () => {
-    const { container } = render(<SparkAnnotation />);
+    const { container } = renderAnnotation();
     const overlay = container.querySelector('.sa-overlay');
     expect(overlay).not.toBeNull();
   });
 
   it('applies dark theme by default', () => {
-    const { container } = render(<SparkAnnotation />);
+    const { container } = renderAnnotation();
     const overlay = container.querySelector('.sa-overlay');
     expect(overlay?.getAttribute('data-theme')).toBe('dark');
   });
 
   it('renders with disconnected class initially', () => {
-    const { container } = render(<SparkAnnotation />);
+    const { container } = renderAnnotation();
     const fab = container.querySelector('.sa-fab');
     expect(fab?.classList.contains('disconnected')).toBe(true);
   });
 
   it('FAB starts in bottom-right position by default', () => {
-    const { container } = render(<SparkAnnotation />);
+    const { container } = renderAnnotation();
     const fab = container.querySelector('.sa-fab') as HTMLElement;
     expect(fab).not.toBeNull();
     // Position should be near bottom-right (1024 - 52 - 16 = 956)
@@ -130,7 +129,7 @@ describe('SparkAnnotation', () => {
   });
 
   it('FAB position adjusts for bottom-left', () => {
-    const { container } = render(<SparkAnnotation position="bottom-left" />);
+    const { container } = renderAnnotation({ position: 'bottom-left' });
     const fab = container.querySelector('.sa-fab') as HTMLElement;
     expect(fab).not.toBeNull();
     // Position should be near bottom-left (16)
@@ -139,50 +138,30 @@ describe('SparkAnnotation', () => {
   });
 
   it('creates BridgeClient with custom bridgeUrl', () => {
-    render(<SparkAnnotation bridgeUrl="ws://custom:4000" />);
+    renderAnnotation({ bridgeUrl: 'ws://custom:4000' });
     expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
     expect(bridgeInstances[0].url).toBe('ws://custom:4000');
   });
 
-  it('uses env project root when projectRoot prop is omitted', () => {
-    (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT = '/tmp/from-next-env';
-    delete (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT;
-    render(<SparkAnnotation />);
-    expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
-    expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-next-env');
-  });
-
-  it('prefers Vite env project root over Next.js env when both are present', () => {
-    (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT = '/tmp/from-next-env';
-    (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT = '/tmp/from-vite-env';
-
-    render(<SparkAnnotation />);
-    expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
-    expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-vite-env');
-  });
-
-  it('prefers explicit projectRoot prop over env', () => {
-    (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT = '/tmp/from-next-env';
-    render(<SparkAnnotation projectRoot="/tmp/from-prop" />);
+  it('uses explicit projectRoot prop', () => {
+    renderAnnotation({ projectRoot: '/tmp/from-prop' });
     expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
     expect(bridgeInstances[0].projectRoot).toBe('/tmp/from-prop');
   });
 
   it('creates BridgeClient with default bridgeUrl', () => {
-    render(<SparkAnnotation />);
+    renderAnnotation();
     expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
     expect(bridgeInstances[0].url).toBe('ws://localhost:3700');
   });
 
-  it('does not create BridgeClient when projectRoot is missing', () => {
-    delete (process.env as Record<string, string | undefined>).VITE_SPARK_PROJECT_ROOT;
-    delete (process.env as Record<string, string | undefined>).NEXT_PUBLIC_SPARK_PROJECT_ROOT;
-    render(<SparkAnnotation />);
+  it('does not create BridgeClient when projectRoot is blank', () => {
+    renderAnnotation({ projectRoot: '   ' });
     expect(bridgeInstances.length).toBe(0);
   });
 
   it('calls connect on BridgeClient on mount', () => {
-    render(<SparkAnnotation />);
+    renderAnnotation();
     expect(bridgeInstances.length).toBeGreaterThanOrEqual(1);
     const client = bridgeInstances[0];
     expect(client.connectFn).toHaveBeenCalledWith(
@@ -197,33 +176,33 @@ describe('SparkAnnotation', () => {
   });
 
   it('calls disconnect on BridgeClient on unmount', () => {
-    const { unmount } = render(<SparkAnnotation />);
+    const { unmount } = renderAnnotation();
     const client = bridgeInstances[0];
     unmount();
     expect(client.disconnectFn).toHaveBeenCalled();
   });
 
   it('does not render panel initially', () => {
-    const { container } = render(<SparkAnnotation />);
+    const { container } = renderAnnotation();
     const panel = container.querySelector('.sa-panel');
     expect(panel).toBeNull();
   });
 
   it('does not show hover highlight initially', () => {
-    const { container } = render(<SparkAnnotation />);
+    const { container } = renderAnnotation();
     const highlight = container.querySelector('.sa-highlight');
     expect(highlight).toBeNull();
   });
 
   it('does not show approval modal initially', () => {
-    const { container } = render(<SparkAnnotation />);
+    const { container } = renderAnnotation();
     const modal = container.querySelector('.sa-modal-backdrop');
     expect(modal).toBeNull();
   });
 
   describe('SSR safety', () => {
     it('renders in jsdom environment with typeof window check', () => {
-      const { container } = render(<SparkAnnotation />);
+      const { container } = renderAnnotation();
       expect(container.querySelector('.sa-overlay')).not.toBeNull();
     });
   });

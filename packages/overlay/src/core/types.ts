@@ -96,8 +96,8 @@ export type ServerMessage =
 export interface SparkAnnotationConfig {
   /** Bridge ServerのWebSocket URL (default: ws://localhost:3700) */
   bridgeUrl?: string;
-  /** プロジェクトルート。指定時は最優先。未指定時は VITE_SPARK_PROJECT_ROOT / NEXT_PUBLIC_SPARK_PROJECT_ROOT を参照 */
-  projectRoot?: string;
+  /** プロジェクトルート。必須。例: import.meta.env.VITE_SPARK_PROJECT_ROOT */
+  projectRoot: string | undefined;
   /** ツールバーの初期位置 */
   position?: 'bottom-right' | 'bottom-left';
 }

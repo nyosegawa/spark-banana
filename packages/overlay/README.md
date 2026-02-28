@@ -20,7 +20,7 @@ Peer dependencies:
 import { SparkAnnotation } from 'spark-banana';
 
 export default function App() {
-  return <SparkAnnotation />;
+  return <SparkAnnotation projectRoot={import.meta.env.VITE_SPARK_PROJECT_ROOT} />;
 }
 ```
 
@@ -52,7 +52,7 @@ import 'spark-banana/styles.css';
 ```tsx
 <SparkAnnotation
   bridgeUrl="ws://localhost:3700"
-  projectRoot="/absolute/path/to/your/project"
+  projectRoot={import.meta.env.VITE_SPARK_PROJECT_ROOT}
   position="bottom-right" // or "bottom-left"
 />
 ```

@@ -113,7 +113,7 @@ Options:
 />
 ```
 
-`projectRoot` はpropsまたは環境変数で明示的に設定してください。
+`projectRoot` は必須のpropsです（`import.meta.env.VITE_SPARK_PROJECT_ROOT` のように環境変数から渡す運用を推奨）。
 デフォルトでは、`--allow-default-project-root` を付けない限り、`spark-bridge` は未登録クライアントを拒否します。
 
 ## 主な機能

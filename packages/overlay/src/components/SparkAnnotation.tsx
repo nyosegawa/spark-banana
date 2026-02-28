@@ -20,50 +20,12 @@ function genId(): string {
   return `sa-${Date.now()}-${++idCounter}`;
 }
 
-function readImportMetaEnv(): Record<string, unknown> {
-  try {
-    // Vite exposes public env on import.meta.env.
-    const meta = import.meta as unknown as { env?: Record<string, unknown> };
-    const env = meta?.env;
-    return (env && typeof env === 'object') ? env : {};
-  } catch {
-    return {};
-  }
-}
-
-function readTrimmedString(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-function detectProjectRoot(): string | undefined {
-  const viteValue = readTrimmedString(readImportMetaEnv().VITE_SPARK_PROJECT_ROOT);
-  if (viteValue) return viteValue;
-
-  try {
-    const viteProcessValue = readTrimmedString(process.env.VITE_SPARK_PROJECT_ROOT);
-    if (viteProcessValue) return viteProcessValue;
-  } catch {
-    // ignore
-  }
-
-  try {
-    const nextValue = readTrimmedString(process.env.NEXT_PUBLIC_SPARK_PROJECT_ROOT);
-    if (nextValue) return nextValue;
-  } catch {
-    // ignore
-  }
-
-  return undefined;
-}
-
 export function SparkAnnotation({
   bridgeUrl = 'ws://localhost:3700',
   projectRoot,
   position = 'bottom-right',
-}: SparkAnnotationConfig = {}) {
-  const resolvedProjectRoot = projectRoot || detectProjectRoot();
+}: SparkAnnotationConfig) {
+  const resolvedProjectRoot = typeof projectRoot === 'string' ? projectRoot.trim() : '';
   const missingProjectRoot = !resolvedProjectRoot;
 
   const [active, setActive] = useState(false);
@@ -426,10 +388,10 @@ export function SparkAnnotation({
               {missingProjectRoot ? (
                 <>
                   <div className="sa-disconnected-hint">
-                    Missing project root. Set `VITE_SPARK_PROJECT_ROOT` / `NEXT_PUBLIC_SPARK_PROJECT_ROOT`
-                    or pass `projectRoot` prop to SparkAnnotation.
+                    Missing project root. Pass `projectRoot` prop to SparkAnnotation.
+                    Example: `projectRoot=import.meta.env.VITE_SPARK_PROJECT_ROOT`.
                   </div>
-                  <code className="sa-disconnected-cmd">VITE_SPARK_PROJECT_ROOT=/absolute/path/to/project</code>
+                  <code className="sa-disconnected-cmd">{'<SparkAnnotation projectRoot={import.meta.env.VITE_SPARK_PROJECT_ROOT} />'}</code>
                 </>
               ) : (
                 <>

@@ -121,7 +121,7 @@ Options:
 />
 ```
 
-`projectRoot` should be explicitly set via prop or env.
+`projectRoot` is required as a prop (typically from env, e.g. `import.meta.env.VITE_SPARK_PROJECT_ROOT`).
 By default, `spark-bridge` rejects unregistered clients unless `--allow-default-project-root` is passed.
 
 ## Main Features
