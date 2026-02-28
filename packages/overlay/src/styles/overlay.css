@@ -1030,15 +1030,22 @@
 
 /* Banana suggestions modal */
 .sa-modal.banana-modal {
-  width: 680px;
-  max-width: calc(100vw - 32px);
+  width: min(920px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
+}
+
+.sa-modal.banana-modal .sa-modal-body {
+  overflow-y: auto;
 }
 
 .sa-banana-modal-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 12px;
+  align-items: start;
 }
 
 .sa-banana-modal-card {
@@ -1064,12 +1071,37 @@
 
 .sa-banana-modal-card-img-wrap {
   position: relative;
+  max-height: min(42vh, 360px);
+  background: rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .sa-banana-modal-card-img-wrap img {
   width: 100%;
+  height: 100%;
+  object-fit: contain;
   display: block;
   border-radius: 8px 8px 0 0;
+}
+
+@media (max-width: 900px) {
+  .sa-modal.banana-modal .sa-banana-modal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .sa-modal.banana-modal {
+    width: calc(100vw - 12px);
+    max-height: calc(100vh - 12px);
+  }
+
+  .sa-modal.banana-modal .sa-banana-modal-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .sa-banana-zoom-btn {
