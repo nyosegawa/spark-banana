@@ -22,6 +22,8 @@ Vite (`.env`): `VITE_SPARK_PROJECT_ROOT=/absolute/path/to/your/project`
 
 Next.js (`.env.local`): `NEXT_PUBLIC_SPARK_PROJECT_ROOT=/absolute/path/to/your/project`
 
+`projectRoot`는 필수 prop이며, 보통 `import.meta.env.VITE_SPARK_PROJECT_ROOT` 같은 env 값을 전달합니다.
+
 ## 모드
 
 - Spark: 요소 기반 수정 요청

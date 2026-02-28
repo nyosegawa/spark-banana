@@ -22,6 +22,8 @@ Vite (`.env`) : `VITE_SPARK_PROJECT_ROOT=/absolute/path/to/your/project`
 
 Next.js (`.env.local`) : `NEXT_PUBLIC_SPARK_PROJECT_ROOT=/absolute/path/to/your/project`
 
+`projectRoot` est requis en tant que prop (généralement via env, par ex. `import.meta.env.VITE_SPARK_PROJECT_ROOT`).
+
 ## Modes
 
 - Spark : correction basée sur un élément

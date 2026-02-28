@@ -30,6 +30,8 @@ Next.js（`.env.local`）:
 NEXT_PUBLIC_SPARK_PROJECT_ROOT=/absolute/path/to/your/project
 ```
 
+`projectRoot` 是必填 prop（通常从环境变量传入，例如 `import.meta.env.VITE_SPARK_PROJECT_ROOT`）。
+
 ## 主要模式
 
 - Spark：基于元素的修复请求

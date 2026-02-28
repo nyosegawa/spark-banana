@@ -22,6 +22,8 @@ Vite (`.env`): `VITE_SPARK_PROJECT_ROOT=/absolute/path/to/your/project`
 
 Next.js (`.env.local`): `NEXT_PUBLIC_SPARK_PROJECT_ROOT=/absolute/path/to/your/project`
 
+`projectRoot` مطلوب كـ prop (يفضَّل تمريره من env مثل `import.meta.env.VITE_SPARK_PROJECT_ROOT`).
+
 ## الأوضاع
 
 - Spark: طلبات إصلاح حسب العنصر
