@@ -1,6 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 const FAB_SIZE = 52;
+const DRAG_MARGIN = 8;
+const INITIAL_MARGIN = 16;
+
+function clampPosition(x: number, y: number, width: number, height: number) {
+  const maxX = Math.max(0, width - FAB_SIZE);
+  const maxY = Math.max(0, height - FAB_SIZE);
+  const minX = Math.min(DRAG_MARGIN, maxX);
+  const minY = Math.min(DRAG_MARGIN, maxY);
+
+  return {
+    x: Math.max(minX, Math.min(maxX, x)),
+    y: Math.max(minY, Math.min(maxY, y)),
+  };
+}
 
 export function useFabDrag(position: 'bottom-right' | 'bottom-left', onTap: () => void) {
   const [fabPos, setFabPos] = useState({ x: 0, y: 0 });
@@ -9,13 +23,24 @@ export function useFabDrag(position: 'bottom-right' | 'bottom-left', onTap: () =
   const dragRef = useRef({ startX: 0, startY: 0, originX: 0, originY: 0, moved: false });
 
   useEffect(() => {
-    const margin = 16;
+    if (typeof window === 'undefined') return;
     setFabPos({
-      x: position === 'bottom-left' ? margin : window.innerWidth - FAB_SIZE - margin,
-      y: window.innerHeight - FAB_SIZE - margin,
+      x: position === 'bottom-left' ? INITIAL_MARGIN : window.innerWidth - FAB_SIZE - INITIAL_MARGIN,
+      y: window.innerHeight - FAB_SIZE - INITIAL_MARGIN,
     });
     setFabReady(true);
   }, [position]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleResize = () => {
+      setFabPos((prev) => clampPosition(prev.x, prev.y, window.innerWidth, window.innerHeight));
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
@@ -35,23 +60,17 @@ export function useFabDrag(position: 'bottom-right' | 'bottom-left', onTap: () =
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragRef.current.moved = true;
-    const margin = 8;
-    setFabPos({
-      x: Math.max(margin, Math.min(window.innerWidth - FAB_SIZE - margin, dragRef.current.originX + dx)),
-      y: Math.max(margin, Math.min(window.innerHeight - FAB_SIZE - margin, dragRef.current.originY + dy)),
-    });
+    setFabPos(clampPosition(
+      dragRef.current.originX + dx,
+      dragRef.current.originY + dy,
+      window.innerWidth,
+      window.innerHeight,
+    ));
   }, [dragging]);
 
   const handlePointerUp = useCallback(() => {
     if (!dragging) return;
     setDragging(false);
-    const margin = 16;
-    setFabPos((prev) => ({
-      x: prev.x + FAB_SIZE / 2 < window.innerWidth / 2
-        ? margin
-        : window.innerWidth - FAB_SIZE - margin,
-      y: prev.y,
-    }));
     if (!dragRef.current.moved) onTap();
   }, [dragging, onTap]);
 

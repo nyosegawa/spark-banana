@@ -46,17 +46,35 @@ describe('useFabDrag', () => {
     expect(result.current.dragging).toBe(false);
   });
 
-  it('drags and snaps to nearest side without firing tap', () => {
+  it('drags freely without firing tap', () => {
     const onTap = vi.fn();
     const { result } = renderHook(() => useFabDrag('bottom-left', onTap));
 
     act(() => {
       result.current.handlePointerDown(makePointerEvent(20, 30));
+    });
+    act(() => {
       result.current.handlePointerMove(makePointerEvent(400, 50));
+    });
+    act(() => {
       result.current.handlePointerUp();
     });
 
     expect(onTap).not.toHaveBeenCalled();
-    expect(result.current.fabPos.x).toBe(16);
+    expect(result.current.fabPos.x).toBe(396);
+    expect(result.current.fabPos.y).toBe(648);
+  });
+
+  it('keeps FAB visible when window is resized', () => {
+    const { result } = renderHook(() => useFabDrag('bottom-right', vi.fn()));
+
+    act(() => {
+      Object.defineProperty(window, 'innerWidth', { value: 300, writable: true, configurable: true });
+      Object.defineProperty(window, 'innerHeight', { value: 240, writable: true, configurable: true });
+      window.dispatchEvent(new Event('resize'));
+    });
+
+    expect(result.current.fabPos.x).toBe(248);
+    expect(result.current.fabPos.y).toBe(188);
   });
 });
