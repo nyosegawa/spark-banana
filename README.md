@@ -6,6 +6,8 @@ English | [日本語](./README.ja.md) | [中文](./README.zh.md) | [한국어](.
 
 Real-time UI annotation for local development. Click an element in the browser, describe the fix, and `spark-bridge` routes the task to Codex MCP.
 
+https://github.com/user-attachments/assets/e80f8892-234f-4952-b67b-bf5f73e54bd8
+
 ```text
 Browser (overlay)            Bridge server                  Your codebase
 ┌───────────────────────┐    ┌────────────────────────┐     ┌───────────────┐
