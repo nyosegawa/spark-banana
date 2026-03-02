@@ -29,9 +29,7 @@ export class CodexMcp {
   private currentProgressCallback: ProgressCallback | null = null;
   private currentApprovalCallback: ApprovalCallback | null = null;
   private currentThreadId: string | null = null;
-  // Approval decisions queued by exec_approval_request notifications.
-  private pendingApprovalQueue: Array<Promise<boolean>> = [];
-  // Backward-compatible manual approval path (used when no callback is supplied).
+  // Manual approval path (used when no approval callback is supplied).
   private pendingApprovalResolvers: Array<(approved: boolean) => void> = [];
 
   constructor(config: Partial<CodexMcpConfig> & { projectRoot: string }) {
@@ -67,7 +65,7 @@ export class CodexMcp {
 
     this.client = new Client(
       { name: 'spark-bridge', version: '0.1.0' },
-      { capabilities: {} }
+      { capabilities: { elicitation: {} } }
     );
 
     // codex/event 通知ハンドラ
@@ -82,37 +80,42 @@ export class CodexMcp {
         onProgress: (message) => {
           this.currentProgressCallback?.(message);
         },
-        onApprovalRequest: (cmd) => {
-          if (this.currentApprovalCallback) {
-            this.pendingApprovalQueue.push(
-              Promise.resolve(this.currentApprovalCallback(cmd))
-                .then((approved) => Boolean(approved))
-                .catch(() => false)
-            );
-          } else {
-            this.pendingApprovalQueue.push(
-              new Promise<boolean>((resolve) => {
-                this.pendingApprovalResolvers.push(resolve);
-              })
-            );
-          }
+        onApprovalRequest: (_cmd) => {
+          // Approval decision is handled via elicitation/create request handler.
+          // This notification is for observability only.
         },
       });
     };
 
-    // codex からの JSON-RPC リクエスト（approval 等）をハンドル
+    // codex からの JSON-RPC リクエスト（elicitation/create 等）をハンドル
     this.client.fallbackRequestHandler = async (request) => {
       console.log(`   [codex -> client] method: ${request.method}`);
 
-      // approval 系のリクエストに対応: ユーザーの応答を待つ
-      const pendingApproval = this.pendingApprovalQueue.shift();
-      if (pendingApproval) {
-        const approved = await pendingApproval;
-        return { approved };
+      // elicitation/create: Codex からの承認リクエスト (MCP 標準プロトコル)
+      if (request.method === 'elicitation/create') {
+        const params = (request as { params?: Record<string, unknown> }).params;
+        const codexCommand = Array.isArray(params?.codex_command)
+          ? (params.codex_command as string[]).join(' ').replace(/^\/bin\/(?:ba)?sh\s+-lc\s+/, '')
+          : '';
+        const command = codexCommand || String(params?.message || 'command');
+
+        let approved: boolean;
+        if (this.currentApprovalCallback) {
+          try {
+            approved = Boolean(await this.currentApprovalCallback(command));
+          } catch {
+            approved = false;
+          }
+        } else {
+          approved = await new Promise<boolean>((resolve) => {
+            this.pendingApprovalResolvers.push(resolve);
+          });
+        }
+
+        return { action: approved ? 'accept' : 'decline' };
       }
 
-      // デフォルト: 承認
-      return { approved: true };
+      return {};
     };
 
     await this.client.connect(this.transport);
@@ -123,7 +126,7 @@ export class CodexMcp {
       proc.stderr.on('data', (data: Buffer) => {
         for (const line of data.toString().trim().split('\n')) {
           if (line.trim()) {
-            console.log(`   [codex stderr] ${line.trim().slice(0, 150)}`);
+            console.log(`   [codex stderr] ${line.trim().slice(0, 500)}`);
           }
         }
       });
@@ -228,7 +231,6 @@ export class CodexMcp {
       clearInterval(watchdog);
       this.currentProgressCallback = null;
       this.currentApprovalCallback = null;
-      this.pendingApprovalQueue = [];
       this.pendingApprovalResolvers = [];
     }
   }
@@ -309,7 +311,6 @@ export class CodexMcp {
       clearInterval(watchdog);
       this.currentProgressCallback = null;
       this.currentApprovalCallback = null;
-      this.pendingApprovalQueue = [];
       this.pendingApprovalResolvers = [];
     }
   }

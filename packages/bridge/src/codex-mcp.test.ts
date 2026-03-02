@@ -262,20 +262,21 @@ describe('CodexMcp', () => {
       expect(callArgs.arguments.prompt).toContain('Unique test comment XYZ');
     });
 
-    it('bridges approval notification to request handler using callback result', async () => {
+    it('handles elicitation/create approval request using callback result', async () => {
       await codexMcp.start();
 
       const onApproval = vi.fn().mockResolvedValue(false);
       mockClientInstance.callTool.mockImplementationOnce(async () => {
-        await mockClientInstance.fallbackNotificationHandler({
-          method: 'codex/event',
+        // elicitation/create carries command info directly in params
+        const approval = await mockClientInstance.fallbackRequestHandler({
+          method: 'elicitation/create',
           params: {
-            msg: { type: 'exec_approval_request', command: ['echo', 'hello'] },
+            mode: 'form',
+            message: 'Allow Codex to run `echo hello`?',
+            codex_command: ['echo', 'hello'],
           },
         });
-
-        const approval = await mockClientInstance.fallbackRequestHandler({ method: 'exec_approval' });
-        expect(approval).toEqual({ approved: false });
+        expect(approval).toEqual({ action: 'decline' });
 
         return {
           content: [{ type: 'text', text: 'denied' }],
@@ -301,17 +302,18 @@ describe('CodexMcp', () => {
       await codexMcp.start();
 
       mockClientInstance.callTool.mockImplementationOnce(async () => {
-        await mockClientInstance.fallbackNotificationHandler({
-          method: 'codex/event',
+        // elicitation/create without callback uses manual resolvers
+        const approvalPromise = mockClientInstance.fallbackRequestHandler({
+          method: 'elicitation/create',
           params: {
-            msg: { type: 'exec_approval_request', command: ['npm', 'test'] },
+            mode: 'form',
+            message: 'Allow Codex to run `npm test`?',
+            codex_command: ['npm', 'test'],
           },
         });
-
-        const approvalPromise = mockClientInstance.fallbackRequestHandler({ method: 'exec_approval' });
         codexMcp.resolveApproval(true);
         const approval = await approvalPromise;
-        expect(approval).toEqual({ approved: true });
+        expect(approval).toEqual({ action: 'accept' });
 
         return {
           content: [{ type: 'text', text: 'ok' }],
