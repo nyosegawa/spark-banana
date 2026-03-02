@@ -31,3 +31,9 @@ pnpm-debug.log*
 
 # Example transpile artifacts
 examples/vite-react/src/*.js
+
+# Promotion video
+promotion/video/out/
+promotion/video/.remotion/
+promotion/video/node_modules/
+promotion/video/captures/
